@@ -122,8 +122,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Koen\source\repos\LewUI Raylib\LewUI Raylib;C:\raylib\raylib\src;C:\Users\Koen\source\repos\LewLib Raylib\LewLib Raylib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\libs\rnp\include;C:\Users\Koen\source\repos\LewUI Raylib\LewUI Raylib;C:\raylib\raylib\src;C:\Users\Koen\source\repos\LewLib Raylib\LewLib Raylib</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -140,8 +141,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Koen\source\repos\LewUI Raylib\LewUI Raylib;C:\raylib\raylib\src;C:\Users\Koen\source\repos\LewLib Raylib\LewLib Raylib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\libs\rnp\include;C:\Users\Koen\source\repos\LewUI Raylib\LewUI Raylib;C:\raylib\raylib\src;C:\Users\Koen\source\repos\LewLib Raylib\LewLib Raylib</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

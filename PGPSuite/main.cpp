@@ -3,6 +3,9 @@
 #include <fstream>
 #include <sstream>
 
+#define RNP_NO_DEPRECATED
+#include <rnp/rnp.h>
+
 std::string read_file(const std::string& filename)
 {
     std::ifstream file(filename);
