@@ -21,7 +21,7 @@ constexpr int RNP_SUCCESS{ 0 };
         'length': 2048,             length in bits of primary key
         'userid': 'rsa@key',        user id used to locate said key
         'expiration': 31536000,     time till the key expires
-        'usage': ['sign'],          ?? what to do with the key i suppose ??
+        'usage': ['sign'],          by convention top level keys are to be used for signing and subkeys for encryption src( https://www.rfc-editor.org/rfc/rfc4880#section-5.5.1.2 )
         'protection': {             the preferred symmetric cipher and hasher
             'cipher': 'AES256',     preferred algorithms used for the symmetric cipher
             'hash': 'SHA256'        preferred hash algorithm to be used for signing
