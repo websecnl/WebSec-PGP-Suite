@@ -146,12 +146,12 @@ namespace rnp
     };
 
     /* Wrapper for rnp buffers
-    * Automatically deletes storage using RAII but NOT when assigned new memory */
+    * Automatically deletes storage using RAII but NOT when assigned new memory
+    * Smart pointers could be used but they do not allow access to the member which forfeits their use in rnp style funtions */
     template<typename _Type>
     struct Buffer
     {
         Buffer() = default;
-        ~Buffer() { destroy(); }
         Buffer(const Buffer&) = delete;
         Buffer(Buffer&& other)
         {
@@ -159,6 +159,7 @@ namespace rnp
             buffer = other.buffer;
             other.buffer = nullptr;
         }
+        ~Buffer() { destroy(); }
 
         _Type* buffer{ nullptr };
 
@@ -173,7 +174,7 @@ namespace rnp
 
         friend std::ostream& operator<<(std::ostream& out, const Buffer<_Type>& rhs)
         {
-            if (buffer == nullptr) return out;
+            if (rhs.buffer == nullptr) return out;
             return out << rhs.buffer;
         }
     };
