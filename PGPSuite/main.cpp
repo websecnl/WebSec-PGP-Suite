@@ -135,7 +135,8 @@ namespace rnp
         bool is_output_set() const noexcept { return _output_set; }
     protected:
         bool _output_set{ false }; /* Keep track of opened state, will be true when in use */
-        bool is_valid_result(std::string&& path, rnp_result_t result)
+
+        static bool is_valid_result(std::string&& path, rnp_result_t result)
         {
             if (result == RNP_SUCCESS) return true;
             std::cerr << "Error setting path to: " << path << '\n';
