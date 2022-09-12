@@ -93,7 +93,7 @@ namespace rnp
         ~FFI() { destroy(); }
 
         rnp_ffi_t ffi = nullptr;
-        operator bool() { return ffi == nullptr; }
+        operator bool() { return ffi != nullptr; }
         operator rnp_ffi_t() { return ffi; } /* To allow passing this object as its underlying C-type */
 
         void destroy()
