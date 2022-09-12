@@ -144,17 +144,50 @@ namespace rnp
             return false;
         }
     };
+
+    /* Wrapper for rnp buffers
+    * Automatically deletes storage using RAII but NOT when assigned new memory */
+    template<typename _Type>
+    struct Buffer
+    {
+        Buffer() = default;
+        ~Buffer() { destroy(); }
+        Buffer(const Buffer&) = delete;
+        Buffer(Buffer&& other)
+        {
+            destroy();
+            buffer = other.buffer;
+            other.buffer = nullptr;
+        }
+
+        _Type* buffer{ nullptr };
+
+        void destroy() 
+        { 
+            if (buffer == nullptr) return;
+            rnp_buffer_destroy(buffer);
+            buffer = nullptr;
+        }
+
+        void clear(size_t size) { rnp_buffer_clear(buffer, size); }
+
+        friend std::ostream& operator<<(std::ostream& out, const Buffer<_Type>& rhs)
+        {
+            if (buffer == nullptr) return out;
+            return out << rhs.buffer;
+        }
+    };
 }
 
 bool generate_keys()
 {
     rnp::FFI ffi("GPG", "GPG"); /* The context rnp works in */
     rnp::Output output; /* Stores where to output keys */
-    char* key_grips = nullptr; /* JSON result buffer */
+    rnp::Buffer<char> key_grips; /* JSON result buffer */
 
     rnp_ffi_set_pass_provider(ffi, example_pass_provider, nullptr);
 
-    if (auto err = rnp_generate_key_json(ffi, RSA_KEY_DESC, &key_grips); 
+    if (auto err = rnp_generate_key_json(ffi, RSA_KEY_DESC, &key_grips.buffer );
         err != RNP_SUCCESS)
     {
         std::cerr << "Failed to generate key from json\n";
@@ -163,9 +196,8 @@ bool generate_keys()
     }
 
     std::cout << "Json result: " << key_grips << '\n';
-    rnp_buffer_destroy(key_grips);
-    key_grips = nullptr;
-
+    key_grips.destroy();
+    
     if (output.set_output_to_path("pubring.pgp") != RNP_SUCCESS) return false;
 
     if (rnp_save_keys(ffi, "GPG", output, RNP_LOAD_SAVE_PUBLIC_KEYS) != RNP_SUCCESS)
