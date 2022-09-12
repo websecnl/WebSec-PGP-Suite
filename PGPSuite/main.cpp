@@ -39,29 +39,6 @@ constexpr int RNP_SUCCESS{ 0 };
     }
 }";
 */
-//const char* RSA_KEY_DESC = "{\
-//    'primary': {\
-//        'type': 'RSA',\
-//        'length': 2048,\
-//        'userid': 'rsa@key',\
-//        'expiration': 31536000,\
-//        'usage': ['sign'],\
-//        'protection': {\
-//            'cipher': 'AES256',\
-//            'hash': 'SHA256'\
-//        }\
-//    },\
-//    'sub': {\
-//        'type': 'RSA',\
-//        'length': 2048,\
-//        'expiration': 15768000,\
-//        'usage': ['encrypt'],\
-//        'protection': {\
-//            'cipher': 'AES256',\
-//            'hash': 'SHA256'\
-//        }\
-//    }\
-//}";
 
 const char* RSA_KEY_DESC = "{\
     'primary': {\
@@ -103,46 +80,107 @@ bool example_pass_provider( rnp_ffi_t           ffi,
     return true;
 }
 
+/* Abstraction classes that utilize RAII to clean up the rnp c-objects 
+* The wrapper classes can all be cast to their original C-type */
+namespace rnp
+{
+    /* Simple ffi wrapper to handle automatic clean up */
+    struct FFI
+    {
+        FFI(std::string pub_format, std::string sec_format)
+        { rnp_ffi_create(&ffi, pub_format.c_str(), sec_format.c_str()); }
+        FFI(const FFI&) = delete;
+        ~FFI() { destroy(); }
+
+        rnp_ffi_t ffi = nullptr;
+        operator bool() { return ffi == nullptr; }
+        operator rnp_ffi_t() { return ffi; } /* To allow passing this object as its underlying C-type */
+
+        void destroy()
+        {
+            if (ffi == nullptr) return;
+            rnp_ffi_destroy(ffi);
+            ffi = nullptr;
+        }
+    };
+
+    /* Simple rnp_output_t wrapper, automatically cleans itself up via RAII
+    * Also automatically destroys old output when setting new output */
+    struct Output
+    {
+        Output() = default;
+        Output(const Output&) = delete;
+        ~Output() { destroy(); }
+        operator rnp_output_t() { return output; }
+
+        rnp_output_t output{ nullptr };
+
+        void destroy()
+        {
+            rnp_output_destroy(output);
+            _output_set = false;
+        }
+
+        rnp_result_t set_output_to_path(std::string&& path)
+        {
+            if (is_output_set()) destroy(); /* If already opened, close old first */
+            _output_set = true;
+            
+            const auto res = rnp_output_to_path(&output, path.c_str());
+            is_valid_result(std::forward<std::string>(path), res);
+            
+            return res;
+        }
+
+        bool is_output_set() const noexcept { return _output_set; }
+    protected:
+        bool _output_set{ false }; /* Keep track of opened state, will be true when in use */
+        bool is_valid_result(std::string&& path, rnp_result_t result)
+        {
+            if (result == RNP_SUCCESS) return true;
+            std::cerr << "Error setting path to: " << path << '\n';
+            std::cerr << "Error code: " << result << '\n';
+            return false;
+        }
+    };
+}
+
 bool generate_keys()
 {
-    rnp_ffi_t ffi = nullptr; /* The context rnp works in */
-    rnp_output_t output = nullptr; /* Stores where to output keys */
-    char* key_grips = nullptr; /* Key buffer */
-    std::unique_ptr<char> _grips = nullptr;
-
-    if (rnp_ffi_create(&ffi, "GPG", "GPG") != RNP_SUCCESS)
-    {
-        std::cout << "Failed to create FFI context\n";
-        return false;
-    }
+    rnp::FFI ffi("GPG", "GPG"); /* The context rnp works in */
+    rnp::Output output; /* Stores where to output keys */
+    char* key_grips = nullptr; /* JSON result buffer */
 
     rnp_ffi_set_pass_provider(ffi, example_pass_provider, nullptr);
 
     if (auto err = rnp_generate_key_json(ffi, RSA_KEY_DESC, &key_grips); 
         err != RNP_SUCCESS)
     {
-        std::cout << "Failed to generate key from json\n";
-        std::cout << "Error code: " << err << '\n';
+        std::cerr << "Failed to generate key from json\n";
+        std::cerr << "Error code: " << err << '\n';
         return false;
     }
+
+    std::cout << "Json result: " << key_grips << '\n';
     rnp_buffer_destroy(key_grips);
     key_grips = nullptr;
 
-    if (rnp_output_to_path(&output, "pubring.pgp") != RNP_SUCCESS)
-    {
-        std::cout << "Failed to create output\n";
-        rnp_output_destroy(output);
-        return false;
-    }
+    if (output.set_output_to_path("pubring.pgp") != RNP_SUCCESS) return false;
 
     if (rnp_save_keys(ffi, "GPG", output, RNP_LOAD_SAVE_PUBLIC_KEYS) != RNP_SUCCESS)
     {
-        std::cout << "Failed to save keys\n";
+        std::cerr << "Failed to save keys\n";
         return false;
     }
 
-    rnp_output_destroy(output);
-    rnp_ffi_destroy(ffi);
+    if (output.set_output_to_path("secring.pgp") != RNP_SUCCESS) return false;
+
+    if (rnp_save_keys(ffi, "GPG", output, RNP_LOAD_SAVE_SECRET_KEYS) != RNP_SUCCESS)
+    {
+        std::cerr << "Failed to save keys\n";
+        return false;
+    }
+    return true;
 }
 
 std::string read_file(const std::string& filename)
