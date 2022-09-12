@@ -217,6 +217,91 @@ bool generate_keys()
     return true;
 }
 
+bool encrypt_text(std::string message)
+{
+    rnp_input_t input_message = nullptr;
+    rnp_output_t output_message = nullptr;
+    rnp_key_handle_t key = nullptr;
+    rnp_op_encrypt_t encrypt_operation = nullptr;
+
+    rnp_input_t input_key = nullptr;
+    rnp::FFI ffi("GPG", "GPG");
+
+    /* Load key file */
+    if (rnp_input_from_path(&input_key, "pubring.pgp"))
+    {
+        std::cerr << "Failed to open pubring.pgp, does file exist?\n";
+        return false;
+    }
+
+    /* Load the to be encrypted message */
+    if (rnp_input_from_memory(&input_message, (uint8_t*)message.data(), message.size(), false) != RNP_SUCCESS)
+    {
+        std::cerr << "Error creating input from memory\n";
+        return false;
+    }
+
+    /* Prepare the output for the encrypted message */
+    if (rnp_output_to_path(&output_message, "message.asc"))
+    {
+        std::cerr << "Error creating output to file\n";
+        return false;
+    }
+
+    /* Attempt to read pubring.pgp for its keys */
+    if (rnp_load_keys(ffi, "GPG", input_key, RNP_LOAD_SAVE_PUBLIC_KEYS) != RNP_SUCCESS)
+    {
+        std::cerr << "Failed to read pubring.pgp\n";
+        return false;
+    }
+
+    /* Create encryption operation */
+    if (rnp_op_encrypt_create(&encrypt_operation, ffi, input_message, output_message) != RNP_SUCCESS)
+    {
+        std::cerr << "Failed to create encryption operation\n";
+        return false;
+    }
+
+    /* Set encryption parameters */
+    rnp_op_encrypt_set_armor(encrypt_operation, true);
+    rnp_op_encrypt_set_file_name(encrypt_operation, "message.txt");
+    rnp_op_encrypt_set_file_mtime(encrypt_operation, time(NULL));
+    rnp_op_encrypt_set_compression(encrypt_operation, "ZIP", 6);
+    rnp_op_encrypt_set_cipher(encrypt_operation, RNP_ALGNAME_AES_256);
+    rnp_op_encrypt_set_aead(encrypt_operation, "None");
+
+    /* Locate key using the userid and load it into the key_handle_t */
+    if (rnp_locate_key(ffi, "userid", "rsa@key", &key) != RNP_SUCCESS)
+    {
+        std::cerr << "failed to locate recipient key rsa@key\n";
+        return false;
+    }
+
+    /* Recipient public key */
+    if (rnp_op_encrypt_add_recipient(encrypt_operation, key) != RNP_SUCCESS)
+    {
+        std::cerr << "Failed to add recipient to key\n";
+        return false;
+    }
+    rnp_key_handle_destroy(key);
+    key = nullptr;
+
+    if (rnp_op_encrypt_execute(encrypt_operation) != RNP_SUCCESS)
+    {
+        std::cerr << "Failed to execute encryption operation\n";
+        return false;
+    }
+    rnp_op_encrypt_destroy(encrypt_operation);
+    encrypt_operation = nullptr;
+
+    /* Clean up */
+    rnp_input_destroy(input_message);
+    rnp_input_destroy(input_key);
+    rnp_output_destroy(output_message);
+
+    return true;
+}
+
 std::string read_file(const std::string& filename)
 {
     std::ifstream file(filename);
@@ -243,6 +328,11 @@ int main()
     if (!generate_keys())
     {
         std::cerr << "Problem generating keys\n";
+    }
+
+    if (!encrypt_text( prompt_input("Text to encrypt: ") ))
+    {
+        std::cerr << "Problem encrypting text\n";
     }
 
     return 0;
