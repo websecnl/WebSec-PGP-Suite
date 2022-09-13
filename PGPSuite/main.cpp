@@ -1,10 +1,15 @@
+/* stl */
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <sstream>
 
+/* rnp */
 #define RNP_NO_DEPRECATED
 #include <rnp/rnp.h>
+
+/* local */
+#include "rnp_wrappers.h"
 
 constexpr int RNP_SUCCESS{ 0 };
 
@@ -80,106 +85,6 @@ bool example_pass_provider( rnp_ffi_t           ffi,
     return true;
 }
 
-/* Abstraction classes that utilize RAII to clean up the rnp c-objects 
-* The wrapper classes can all be cast to their original C-type */
-namespace rnp
-{
-    /* Simple ffi wrapper to handle automatic clean up */
-    struct FFI
-    {
-        FFI(std::string pub_format, std::string sec_format)
-        { rnp_ffi_create(&ffi, pub_format.c_str(), sec_format.c_str()); }
-        FFI(const FFI&) = delete;
-        ~FFI() { destroy(); }
-
-        rnp_ffi_t ffi = nullptr;
-        operator bool() { return ffi != nullptr; }
-        operator rnp_ffi_t() { return ffi; } /* To allow passing this object as its underlying C-type */
-
-        void destroy()
-        {
-            if (ffi == nullptr) return;
-            rnp_ffi_destroy(ffi);
-            ffi = nullptr;
-        }
-    };
-
-    /* Simple rnp_output_t wrapper, automatically cleans itself up via RAII
-    * Also automatically destroys old output when setting new output */
-    struct Output
-    {
-        Output() = default;
-        Output(const Output&) = delete;
-        ~Output() { destroy(); }
-        operator rnp_output_t() { return output; }
-
-        rnp_output_t output{ nullptr };
-
-        void destroy()
-        {
-            rnp_output_destroy(output);
-            _output_set = false;
-        }
-
-        rnp_result_t set_output_to_path(std::string&& path)
-        {
-            if (is_output_set()) destroy(); /* If already opened, close old first */
-            _output_set = true;
-            
-            const auto res = rnp_output_to_path(&output, path.c_str());
-            is_valid_result(std::forward<std::string>(path), res);
-            
-            return res;
-        }
-
-        bool is_output_set() const noexcept { return _output_set; }
-    protected:
-        bool _output_set{ false }; /* Keep track of opened state, will be true when in use */
-
-        static bool is_valid_result(std::string&& path, rnp_result_t result)
-        {
-            if (result == RNP_SUCCESS) return true;
-            std::cerr << "Error setting path to: " << path << '\n';
-            std::cerr << "Error code: " << result << '\n';
-            return false;
-        }
-    };
-
-    /* Wrapper for rnp buffers
-    * Automatically deletes storage using RAII but NOT when assigned new memory
-    * Smart pointers could be used but they do not allow access to the member which forfeits their use in rnp style funtions */
-    template<typename _Type>
-    struct Buffer
-    {
-        Buffer() = default;
-        Buffer(const Buffer&) = delete;
-        Buffer(Buffer&& other)
-        {
-            destroy();
-            buffer = other.buffer;
-            other.buffer = nullptr;
-        }
-        ~Buffer() { destroy(); }
-
-        _Type* buffer{ nullptr };
-
-        void destroy() 
-        { 
-            if (buffer == nullptr) return;
-            rnp_buffer_destroy(buffer);
-            buffer = nullptr;
-        }
-
-        void clear(size_t size) { rnp_buffer_clear(buffer, size); }
-
-        friend std::ostream& operator<<(std::ostream& out, const Buffer<_Type>& rhs)
-        {
-            if (rhs.buffer == nullptr) return out;
-            return out << rhs.buffer;
-        }
-    };
-}
-
 bool generate_keys()
 {
     rnp::FFI ffi("GPG", "GPG"); /* The context rnp works in */
@@ -219,34 +124,23 @@ bool generate_keys()
 
 bool encrypt_text(std::string message)
 {
-    rnp_input_t input_message = nullptr;
-    rnp_output_t output_message = nullptr;
+    rnp::Input input_message;
+    rnp::Output output_message;
     rnp_key_handle_t key = nullptr;
-    rnp_op_encrypt_t encrypt_operation = nullptr;
 
-    rnp_input_t input_key = nullptr;
+    rnp::Input input_key;
     rnp::FFI ffi("GPG", "GPG");
 
     /* Load key file */
-    if (rnp_input_from_path(&input_key, "pubring.pgp"))
-    {
-        std::cerr << "Failed to open pubring.pgp, does file exist?\n";
-        return false;
-    }
+    if (input_key.set_input_from_path("pubring.pgp") != RNP_SUCCESS) return false;
 
     /* Load the to be encrypted message */
-    if (rnp_input_from_memory(&input_message, (uint8_t*)message.data(), message.size(), false) != RNP_SUCCESS)
-    {
-        std::cerr << "Error creating input from memory\n";
-        return false;
-    }
+    if (input_message.set_input_from_memory((uint8_t*)message.data(), message.size(), false) != RNP_SUCCESS) return false;
 
     /* Prepare the output for the encrypted message */
-    if (rnp_output_to_path(&output_message, "message.asc"))
-    {
-        std::cerr << "Error creating output to file\n";
-        return false;
-    }
+    if (output_message.set_output_to_path("message.asc") != RNP_SUCCESS) return false;
+
+    rnp::EncryptOperation op(ffi, input_message, output_message);
 
     /* Attempt to read pubring.pgp for its keys */
     if (rnp_load_keys(ffi, "GPG", input_key, RNP_LOAD_SAVE_PUBLIC_KEYS) != RNP_SUCCESS)
@@ -255,20 +149,13 @@ bool encrypt_text(std::string message)
         return false;
     }
 
-    /* Create encryption operation */
-    if (rnp_op_encrypt_create(&encrypt_operation, ffi, input_message, output_message) != RNP_SUCCESS)
-    {
-        std::cerr << "Failed to create encryption operation\n";
-        return false;
-    }
-
     /* Set encryption parameters */
-    rnp_op_encrypt_set_armor(encrypt_operation, true);
-    rnp_op_encrypt_set_file_name(encrypt_operation, "message.txt");
-    rnp_op_encrypt_set_file_mtime(encrypt_operation, time(NULL));
-    rnp_op_encrypt_set_compression(encrypt_operation, "ZIP", 6);
-    rnp_op_encrypt_set_cipher(encrypt_operation, RNP_ALGNAME_AES_256);
-    rnp_op_encrypt_set_aead(encrypt_operation, "None");
+    op.set_armor(true);
+    op.set_file_name("message.txt");
+    op.set_file_mtime(time(NULL));
+    op.set_compression("ZIP", 6);
+    op.set_cipher(RNP_ALGNAME_AES_256);
+    op.set_aead("None");
 
     /* Locate key using the userid and load it into the key_handle_t */
     if (rnp_locate_key(ffi, "userid", "rsa@key", &key) != RNP_SUCCESS)
@@ -276,29 +163,15 @@ bool encrypt_text(std::string message)
         std::cerr << "failed to locate recipient key rsa@key\n";
         return false;
     }
-
+    
     /* Recipient public key */
-    if (rnp_op_encrypt_add_recipient(encrypt_operation, key) != RNP_SUCCESS)
-    {
-        std::cerr << "Failed to add recipient to key\n";
-        return false;
-    }
+    if (op.add_recipient(key) != RNP_SUCCESS) return false;
+    
     rnp_key_handle_destroy(key);
     key = nullptr;
 
-    if (rnp_op_encrypt_execute(encrypt_operation) != RNP_SUCCESS)
-    {
-        std::cerr << "Failed to execute encryption operation\n";
-        return false;
-    }
-    rnp_op_encrypt_destroy(encrypt_operation);
-    encrypt_operation = nullptr;
-
-    /* Clean up */
-    rnp_input_destroy(input_message);
-    rnp_input_destroy(input_key);
-    rnp_output_destroy(output_message);
-
+    if (op.execute() != RNP_SUCCESS) return false;
+    
     return true;
 }
 
@@ -325,10 +198,10 @@ int main()
 
     std::cout << read_file(filename);*/
 
-    if (!generate_keys())
-    {
-        std::cerr << "Problem generating keys\n";
-    }
+    // if (!generate_keys())
+    // {
+    //     std::cerr << "Problem generating keys\n";
+    // }
 
     if (!encrypt_text( prompt_input("Text to encrypt: ") ))
     {
