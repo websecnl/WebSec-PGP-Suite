@@ -40,8 +40,8 @@ constexpr int RNP_SUCCESS{ 0 };
         'expiration': 31536000,     time till the key expires
         'usage': ['sign'],          by convention top level keys are to be used for signing and subkeys for encryption src( https://www.rfc-editor.org/rfc/rfc4880#section-5.5.1.2 )
         'protection': {             the preferred symmetric cipher and hasher
-            'cipher': 'AES256',     preferred algorithms used for the symmetric cipher
-            'hash': 'SHA256'        preferred hash algorithm to be used for signing
+            'cipher': 'AES256',     symmetric algorithm used for the key passphrase
+            'hash': 'SHA256'        hash algorithm used for the key passphrase
         }
     },
     'sub': {                        subkey data
@@ -170,7 +170,7 @@ bool encrypt_text(std::string message)
     op.set_aead("None");
 
     /* Setting password */
-    op.set_password("the coolest pass", RNP_ALGNAME_SHA256, 0, RNP_ALGNAME_AES_256);
+    op.set_password("cool-wachtwoord", RNP_ALGNAME_SHA256, 0, RNP_ALGNAME_AES_256);
 
     /* Locate key using the userid and load it into the key_handle_t */
     if (rnp_locate_key(ffi, "userid", "rsa@key", &key) != RNP_SUCCESS)
@@ -218,16 +218,16 @@ int main()
 
     std::cout << read_file(filename);*/
 
-    if (!generate_keys("other_pubring.pgp", "other_secring.pgp"))
+    // if (!generate_keys("other_pubring.pgp", "other_secring.pgp"))
+    // {
+    //     std::cerr << "Problem generating keys\n";
+    // }
+    // 
+    if (!encrypt_text(prompt_input("Text to encrypt: ")))
     {
-        std::cerr << "Problem generating keys\n";
+        std::cerr << "Problem encrypting text\n";
     }
-
-    //if (!encrypt_text(prompt_input("Text to encrypt: ")))
-    //{
-    //    std::cerr << "Problem encrypting text\n";
-    //}
-    // else std::cout << "Encrypted input\n";
+     else std::cout << "Encrypted input\n";
 
     return 0;
 }
