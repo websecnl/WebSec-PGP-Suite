@@ -2,11 +2,10 @@
 
 #include <iostream>
 #include <string>
+#include <optional>
 
 #define RNP_NO_DEPRECATED
 #include <rnp/rnp.h>
-
-#include <vector>
 
 /* A collection of wrapper classes that utilize RAII to clean up the rnp C-objects
 * The wrapper classes can all be cast to their original C-type 
@@ -16,6 +15,27 @@ namespace rnp
 {
     /* Determines wether an rnp function was successfull */
     constexpr int RNP_SUCCESS{ 0 };
+
+    namespace
+    {
+        /* Validate result gotten from an rnp function */
+        bool validate_result(int result)
+        {
+            return result == RNP_SUCCESS;
+        }
+
+        /*Validate result gotten from an rnp function
+        * @param result result code to check
+        * @param print_on_failure strings to print on failure */
+        template<typename... _Args>
+        bool validate_result(int result, _Args... print_on_failure)
+        {
+            if (validate_result(result)) return true;
+            ((std::cerr << print_on_failure << ' '), ...);
+            std::cerr << "Error code: " << result << '\n';
+            return false;
+        }
+    }
 
     /* Simple ffi wrapper to handle automatic clean up */
     struct FFI
@@ -58,11 +78,10 @@ namespace rnp
 
         rnp_result_t set_output_to_path(std::string&& path)
         {
-            if (is_output_set()) destroy(); /* If already opened, close old first */
-            _output_set = true;
+            prepare_input();
 
             const auto res = rnp_output_to_path(&output, path.c_str());
-            is_valid_result(std::forward<std::string>(path), res);
+            validate_result(res, "Failed setting path to:", path, "does it exist?");
 
             return res;
         }
@@ -70,13 +89,11 @@ namespace rnp
         bool is_output_set() const noexcept { return _output_set; }
     protected:
         bool _output_set{ false }; /* Keep track of opened state, will be true when in use */
-
-        static bool is_valid_result(std::string&& path, rnp_result_t result)
+        /* Prepare input to be set, will delete old input */
+        void prepare_input()
         {
-            if (result == RNP_SUCCESS) return true;
-            std::cerr << "Error setting path to: " << path << '\n';
-            std::cerr << "Error code: " << result << '\n';
-            return false;
+            if (is_output_set()) destroy(); /* If already opened, close old first */
+            _output_set = true;
         }
     };
 
@@ -137,7 +154,7 @@ namespace rnp
             prepare_input();
 
             const auto res = rnp_input_from_path(&input, path.c_str());
-            is_valid_result(std::forward<std::string>(path), res);
+            validate_result(res, "Failed to open:", path, "does it exist?");
 
             return res;
         }
@@ -158,14 +175,6 @@ namespace rnp
         {
             if (is_input_set()) destroy(); /* If already opened, close old first */
             _input_set = true;
-        }
-
-        static bool is_valid_result(std::string && path, rnp_result_t result)
-        {
-            if (result == RNP_SUCCESS) return true;
-            std::cerr << "Failed to open: " << path << " does it exist?\n";
-            std::cerr << "Error code: " << result << '\n';
-            return false;
         }
     };
 
@@ -217,8 +226,30 @@ namespace rnp
         rnp_result_t add_recipient(rnp_key_handle_t key)
         {
             const auto res = rnp_op_encrypt_add_recipient(op, key);
-            if (res != RNP_SUCCESS)
-                std::cerr << "Error adding recipient\n";
+            validate_result(res, "Error adding recipient");
+            return res;
+        }
+
+        /**
+         * @brief Add password which is used to encrypt data. Multiple passwords can be added.
+         *
+         * @param password NULL terminated password string, or NULL if password should be requested via password provider.
+         * @param s2k_hash hash algorithm, used in key-from-password derivation. Pass NULL for default
+         *        value. See rnp_op_encrypt_set_hash for possible values.
+         * @param iterations number of iterations, used in key derivation function.
+         *        According to RFC 4880, chapter 3.7.1.3, only 256 distinct values within the range
+         *        [1024..0x3e00000] can be encoded. Thus, the number will be increased to the closest
+         *        encodable value. In case it exceeds the maximum encodable value, it will be decreased
+         *        to the maximum encodable value.
+         *        If 0 is passed, an optimal number (greater or equal to 1024) will be calculated based
+         *        on performance measurement.
+         * @param s2k_cipher symmetric cipher, used for key encryption. Pass NULL for default value.
+         * See rnp_op_encrypt_set_cipher for possible values.
+         */
+        rnp_result_t set_password(const char* password, const char* s2k_hash, size_t iterations, const char* s2k_cipher)
+        {
+            const auto res = rnp_op_encrypt_add_password(op, password, s2k_hash, iterations, s2k_cipher);
+            validate_result(res, "Failed to set password");
             return res;
         }
 
@@ -226,8 +257,7 @@ namespace rnp
         rnp_result_t execute()
         {
             const auto res = rnp_op_encrypt_execute(op);
-            if (res != RNP_SUCCESS)
-                std::cerr << "Error executing encryption operation\n";
+            validate_result(res, "Error executing encryption operation");
             return res;
         }
     };
