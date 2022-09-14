@@ -3,6 +3,9 @@
 #include <iostream>
 #include <string>
 #include <optional>
+#include <vector>
+#include <assert.h>
+#include <functional>
 
 #define RNP_NO_DEPRECATED
 #include <rnp/rnp.h>
@@ -15,9 +18,13 @@ namespace rnp
 {
     /* Determines wether an rnp function was successfull */
     constexpr int RNP_SUCCESS{ 0 };
+    
+    /* IO Modes for the various IO classes */
+    enum class IOMode { None, Memory, Path };
 
     namespace
     {
+
         /* Validate result gotten from an rnp function */
         bool validate_result(int result)
         {
@@ -36,6 +43,46 @@ namespace rnp
             return false;
         }
     }
+
+    /* Interface for the IO wrappers, handles deletion and io mode setting
+    @param _IO type of the io object to be wrapped */
+    template<typename _IO>
+    struct IIOWrapper
+    {
+        using Destructor = std::function<void(_IO)>;
+
+        IIOWrapper(Destructor func) : _destructor(func) {}
+        IIOWrapper(const IIOWrapper&) = delete;
+        ~IIOWrapper() { destroy(); }
+        operator _IO() { return io_object; }
+
+        void destroy()
+        {
+            if (is_io_set()) _destructor(io_object);
+            _io_mode = IOMode::None;
+        }
+
+        /* The wrapped io object */
+        _IO io_object{};
+
+        /* @brief Check if the io has been set to any mode */
+        bool is_io_set() const noexcept { return _io_mode != IOMode::None; }
+
+        /* @brief check if the io is on a specific mode
+        @param mode The mode to check for */
+        bool is_io(IOMode mode) const { return _io_mode == mode; }
+    protected:
+        IOMode _io_mode{ IOMode::None };
+        Destructor _destructor; /* function to destroy the io object */
+
+        /* @brief Prepare input to be set, will delete old input
+        @param mode The io mode that the input is preparing for */
+        void prepare_io(IOMode mode)
+        {
+            if (is_io_set()) destroy(); /* If already opened, close old first */
+            _io_mode = mode;
+        }
+    };
 
     /* Simple ffi wrapper to handle automatic clean up */
     struct FFI
@@ -59,41 +106,80 @@ namespace rnp
         }
     };
 
+    
+
     /* Simple rnp_output_t wrapper, automatically cleans itself up via RAII
-    * Also automatically destroys old output when setting new output */
+    * Also automatically destroys old output when setting new output
+    * It outputs data from here to somewhere like a file*/
     struct Output
+        : public IIOWrapper<rnp_output_t>
     {
-        Output() = default;
-        Output(const Output&) = delete;
-        ~Output() { destroy(); }
-        operator rnp_output_t() { return output; }
+        Output() : IIOWrapper(rnp_output_destroy) {}
 
-        rnp_output_t output{ nullptr };
-
-        void destroy()
+        /* Returns a copy of the data in the internal buffer */
+        std::vector<uint8_t> get_memory_buffer()
         {
-            rnp_output_destroy(output);
-            _output_set = false;
+            assert(is_io(IOMode::Memory));
+
+            uint8_t* ptr{ nullptr };
+            size_t size{ 0 };
+
+            rnp_output_memory_get_buf(io_object, &ptr, &size, false);
+
+            /* For now we copy the internal buffer, there is a better way but this will do for now */
+            std::vector<uint8_t> buffer(size);
+            std::copy(ptr, ptr + size, std::back_inserter(buffer));
+
+            return buffer;
         }
 
-        rnp_result_t set_output_to_path(std::string&& path)
+        /* @brief Initialize output to write to memory
+        @param max_alloc maximum amount of bytes to write, 0 is infinite and the default */
+        rnp_result_t set_output_to_memory(size_t max_alloc = 0)
         {
-            prepare_input();
+            prepare_io(IOMode::Memory);
 
-            const auto res = rnp_output_to_path(&output, path.c_str());
-            validate_result(res, "Failed setting path to:", path, "does it exist?");
+            const auto res = rnp_output_to_memory(&io_object, max_alloc);
+            validate_result(res, "Failed setting output to memory.");
 
             return res;
         }
 
-        bool is_output_set() const noexcept { return _output_set; }
-    protected:
-        bool _output_set{ false }; /* Keep track of opened state, will be true when in use */
-        /* Prepare input to be set, will delete old input */
-        void prepare_input()
+        rnp_result_t set_output_to_path(std::string&& path)
         {
-            if (is_output_set()) destroy(); /* If already opened, close old first */
-            _output_set = true;
+            prepare_io(IOMode::Path);
+
+            const auto res = rnp_output_to_path(&io_object, path.c_str());
+            validate_result(res, "Failed setting path to:", path, "does it exist?");
+
+            return res;
+        }
+    };
+
+    /* Simple rnp_input_t wrapper, automatically cleans itself up via RAII
+    * Also automatically destroys old input when setting new input
+    * It inputs data from somewhere to here */
+    struct Input
+        : public IIOWrapper<rnp_input_t>
+    {
+        Input() : IIOWrapper(rnp_input_destroy) {}
+
+        /* @brief Opens the given path for loading data */
+        rnp_result_t set_input_from_path(std::string && path)
+        {
+            prepare_io(IOMode::Path);
+
+            const auto res = rnp_input_from_path(&io_object, path.c_str());
+            validate_result(res, "Failed to open:'", path, "'does it exist?");
+
+            return res;
+        }
+
+        rnp_result_t set_input_from_memory(const uint8_t* data, size_t size, bool copy = false)
+        {
+            prepare_io(IOMode::Memory);
+
+            return rnp_input_from_memory(&io_object, data, size, copy);
         }
     };
 
@@ -128,53 +214,6 @@ namespace rnp
         {
             if (rhs.buffer == nullptr) return out;
             return out << rhs.buffer;
-        }
-    };
-
-    /* Wrapper of rnp_input_t
-    * Holds information regarding inputting data */
-    struct Input
-    {
-        Input() = default;
-        explicit Input(rnp_input_t in) : input(in) {}
-        Input(const Input&) = delete;
-        ~Input() { destroy(); }
-        operator rnp_input_t() { return input; }
-
-        rnp_input_t input{ nullptr };
-
-        void destroy()
-        {
-            rnp_input_destroy(input);
-            _input_set = false;
-        }
-
-        rnp_result_t set_input_from_path(std::string && path)
-        {
-            prepare_input();
-
-            const auto res = rnp_input_from_path(&input, path.c_str());
-            validate_result(res, "Failed to open:", path, "does it exist?");
-
-            return res;
-        }
-
-        rnp_result_t set_input_from_memory(const uint8_t* data, size_t size, bool copy = false)
-        {
-            prepare_input();
-
-            return rnp_input_from_memory(&input, data, size, copy);
-        }
-
-        bool is_input_set() const noexcept { return _input_set; }
-    protected:
-        bool _input_set{ false }; /* Keep track of opened state, will be true when in use */
-
-        /* Clean up old input if there was */
-        void prepare_input()
-        {
-            if (is_input_set()) destroy(); /* If already opened, close old first */
-            _input_set = true;
         }
     };
 
