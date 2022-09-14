@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 /* rnp */
 #define RNP_NO_DEPRECATED
@@ -39,7 +40,7 @@ constexpr int RNP_SUCCESS{ 0 };
         'userid': 'rsa@key',        user id used to locate said key
         'expiration': 31536000,     time till the key expires
         'usage': ['sign'],          by convention top level keys are to be used for signing and subkeys for encryption src( https://www.rfc-editor.org/rfc/rfc4880#section-5.5.1.2 )
-        'protection': {             the preferred symmetric cipher and hasher
+        'protection': {             protection of the key
             'cipher': 'AES256',     symmetric algorithm used for the key passphrase
             'hash': 'SHA256'        hash algorithm used for the key passphrase
         }
@@ -81,6 +82,15 @@ const char* RSA_KEY_DESC = "{\
     }\
 }";
 
+template<typename... _Args>
+std::string prompt_input(_Args... prompt)
+{
+    ((std::cout << prompt), ...);
+    std::string input_buffer;
+    std::getline(std::cin, input_buffer);
+    return input_buffer;
+}
+
 bool example_pass_provider( rnp_ffi_t           ffi,
                             void*               app_ctx,
                             rnp_key_handle_t    key,
@@ -96,6 +106,36 @@ bool example_pass_provider( rnp_ffi_t           ffi,
     strncpy_s(buf, buf_len, "password", buf_len);
     return true;
 }
+
+bool cin_pass_provider( rnp_ffi_t           ffi,
+                        void*               app_ctx,
+                        rnp_key_handle_t    key,
+                        const char*         pgp_context,
+                        char                buf[],
+                        size_t              buf_len)
+{
+    std::string input{};
+    if (pgp_context == std::string("decrypt (symmetric)") ||
+        pgp_context == std::string("decrypt"))
+        input = prompt_input(pgp_context, ": ");
+       
+    if (input.size() > buf_len) return false;
+
+    std::copy(input.begin(), input.end(), buf);
+
+    return input.size() > 0;
+}
+
+/*
+* if (!strcmp(pgp_context, "decrypt (symmetric)")) {
+        strncpy(buf, "encpassword", buf_len);
+        return true;
+    }
+    if (!strcmp(pgp_context, "decrypt")) {
+        strncpy(buf, "password", buf_len);
+        return true;
+    }
+*/
 
 bool generate_keys(std::string public_keyring = "secring.pgp", std::string secret_keyring = "secring.pgp")
 {
@@ -190,9 +230,50 @@ bool encrypt_text(std::string message)
     return true;
 }
 
-bool decrypt_text()
+bool decrypt_text(std::string secring_file = "secring.pgp", std::string encrypted_file = "message.asc")
 {
-    return false;
+    rnp::FFI ffi("GPG", "GPG");
+    rnp::Input keyfile;
+    rnp::Input input;
+    rnp::Output output;
+    std::vector<uint8_t> buffer;
+
+    /* load secret keyring, as it is required for public-key decryption. However, you may
+        * need to load public keyring as well to validate key's signatures. */
+    if (keyfile.set_input_from_path(std::forward<std::string>(secring_file))) return false;
+
+    /* we may use RNP_LOAD_SAVE_SECRET_KEYS | RNP_LOAD_SAVE_PUBLIC_KEYS as well*/
+    if (rnp_load_keys(ffi, "GPG", keyfile, RNP_LOAD_SAVE_SECRET_KEYS) != RNP_SUCCESS)
+    {
+        std::cout << "failed to read secring.pgp\n";
+        return false;
+    }
+    keyfile.destroy();
+
+    rnp_ffi_set_pass_provider(ffi, cin_pass_provider, NULL);
+
+    /* create file input and memory output objects for the encrypted message and decrypted
+     * message */
+    if (input.set_input_from_path(std::forward<std::string>(encrypted_file)) != RNP_SUCCESS) return false;
+
+    if (output.set_output_to_memory() != RNP_SUCCESS) return false;
+
+    /* input: where is the encrypted data
+       output: where to save the decrypted data */
+    if (rnp_decrypt(ffi, input, output) != RNP_SUCCESS) {
+        std::cout << "public-key decryption failed\n";
+        return false;
+    }
+
+    /* get the decrypted message from the output structure */
+    buffer = output.get_memory_buffer();
+
+    std::cout << "The decrypted message: ";
+    for (const auto c : buffer)
+        std::cout << c;
+    std::cout << '\n';
+
+    return true;
 }
 
 std::string read_file(const std::string& filename)
@@ -201,14 +282,6 @@ std::string read_file(const std::string& filename)
     std::stringstream buffer_stream;
     buffer_stream << file.rdbuf();
     return buffer_stream.str();
-}
-
-std::string prompt_input(std::string prompt)
-{
-    std::cout << prompt;
-    std::string input_buffer;
-    std::getline(std::cin, input_buffer);
-    return input_buffer;
 }
 
 int main()
@@ -223,11 +296,15 @@ int main()
     //     std::cerr << "Problem generating keys\n";
     // }
     // 
-    if (!encrypt_text(prompt_input("Text to encrypt: ")))
-    {
-        std::cerr << "Problem encrypting text\n";
-    }
-     else std::cout << "Encrypted input\n";
+    // if (!encrypt_text(prompt_input("Text to encrypt: ")))
+    //     std::cerr << "Problem encrypting text\n";
+    //  else 
+    //     std::cout << "Encrypted input\n";
+    
+    if (!decrypt_text("secring.pgp"))
+        std::cerr << "Problem decrypting data\n";
+    else
+        std::cout << "Decrypted data\n";
 
     return 0;
 }
