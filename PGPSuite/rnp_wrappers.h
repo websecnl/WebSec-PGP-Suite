@@ -106,8 +106,6 @@ namespace rnp
         }
     };
 
-    
-
     /* Simple rnp_output_t wrapper, automatically cleans itself up via RAII
     * Also automatically destroys old output when setting new output
     * It outputs data from here to somewhere like a file*/
@@ -116,7 +114,7 @@ namespace rnp
     {
         Output() : IIOWrapper(rnp_output_destroy) {}
 
-        /* Returns a copy of the data in the internal buffer */
+        /* @return A copy of the data in the internal buffer */
         std::vector<uint8_t> get_memory_buffer()
         {
             assert(is_io(IOMode::Memory));
@@ -127,7 +125,8 @@ namespace rnp
             rnp_output_memory_get_buf(io_object, &ptr, &size, false);
 
             /* For now we copy the internal buffer, there is a better way but this will do for now */
-            std::vector<uint8_t> buffer(size);
+            std::vector<uint8_t> buffer;
+            buffer.reserve(size);
             std::copy(ptr, ptr + size, std::back_inserter(buffer));
 
             return buffer;
