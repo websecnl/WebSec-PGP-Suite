@@ -42,7 +42,7 @@ namespace rnp
             std::cerr << "Error code: " << result << '\n';
             return false;
         }
-    }
+    }   
 
     /* Interface for the IO wrappers, handles deletion and io mode setting
     @param _IO type of the io object to be wrapped */
@@ -167,9 +167,9 @@ namespace rnp
         rnp_result_t set_input_from_path(std::string && path)
         {
             prepare_io(IOMode::Path);
-
+            
             const auto res = rnp_input_from_path(&io_object, path.c_str());
-            validate_result(res, "Failed to open:'", path, "'does it exist?");
+            validate_result(res, "Failed to open: '", path, "' does it exist?");
 
             return res;
         }
@@ -189,8 +189,8 @@ namespace rnp
     struct Buffer
     {
         Buffer() = default;
-        Buffer(const Buffer&) = delete;
-        Buffer(Buffer&& other)
+        Buffer(const Buffer<_Type>&) = delete;
+        Buffer(Buffer<_Type>&& other)
         {
             destroy();
             buffer = other.buffer;
@@ -214,7 +214,7 @@ namespace rnp
             if (rhs.buffer == nullptr) return out;
             return out << rhs.buffer;
         }
-    };
+    };   
 
     /* Wrapper of rnp_op_encrypt_t 
     * Holds information necessary for starting encryption operations */
