@@ -1,6 +1,6 @@
 #include "PGPEncrypt.h"
 
-bool pgp::encrypt_text(uint8_t* data, size_t size, std::string save_to, bool add_password)
+bool pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std::string save_to, bool add_password)
 {
     rnp::Input input_message;
     rnp::Output output_message;
@@ -9,8 +9,8 @@ bool pgp::encrypt_text(uint8_t* data, size_t size, std::string save_to, bool add
     rnp::Input input_key;
     rnp::FFI ffi("GPG", "GPG");
 
-    /* Load key file */
-    if (input_key.set_input_from_path("pubring.pgp") != RNP_SUCCESS) return false;
+    /* Load key file */ /* should in the future allow for adding multiple keys */
+    if (input_key.set_input_from_path(std::forward<std::string>(pubkey_file)) != RNP_SUCCESS) return false;
 
     /* Load the to be encrypted message */
     if (input_message.set_input_from_memory(data, size, false) != RNP_SUCCESS) return false;
@@ -46,7 +46,9 @@ bool pgp::encrypt_text(uint8_t* data, size_t size, std::string save_to, bool add
         return false;
     }
 
-    /* Recipient public key */
+    /* Recipient public key, the public keys encrypt the data so
+    that the recipient can decrypt it using their secret key
+    thats why we say we add the public key of the recipient */
     if (op.add_recipient(key) != RNP_SUCCESS) return false;
 
     rnp_key_handle_destroy(key);
