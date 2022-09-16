@@ -7,9 +7,14 @@ bool pgp::cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle_t key, 
         pgp_context == std::string("decrypt"))
         input = io::prompt_input(pgp_context, ": ");
 
-    if (input.size() > buf_len) return false;
+    auto end = input.end();
+    if (input.size() > buf_len)
+    {
+        end = input.begin() + (buf_len - 1);
+        std::cout << "Input was truncated\n";
+    }
 
-    std::copy(input.begin(), input.end(), buf);
+    std::copy(input.begin(), end, buf);
 
     return input.size() > 0;
 }
