@@ -40,7 +40,7 @@ namespace pgp::utils
         /* if the '.' was a the start then just return 'a' default value */
         if (itr == str.begin()) return "a";
 
-        return std::string(str.begin(), itr - 1);
+        return std::string(str.begin(), itr);
     }
 }
 
