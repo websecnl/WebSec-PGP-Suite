@@ -3,23 +3,38 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <iostream>
 
 namespace io
 {
-    inline std::string read_file(const std::string& filename)
+    namespace
     {
-        std::ifstream file(filename);
-        std::stringstream buffer_stream;
-        buffer_stream << file.rdbuf();
-        return buffer_stream.str();
+        template<class _FStream>
+        inline void validate_file(_FStream& file)
+        {
+            if (file.fail())
+                throw std::exception("File does not exist");
+        }
+
+        template<class _Str, class _FStream, class _SStream>
+        inline _Str read_file(const _Str& filename, bool file_has_to_exist = false)
+        {
+            _FStream file(filename);
+            if (file_has_to_exist) validate_file<_FStream>(file);
+            _SStream buffer_stream;
+            buffer_stream << file.rdbuf();
+            return buffer_stream.str();
+        }
+    }
+    
+    std::string read_file(const std::string& filename, bool file_has_to_exist = false)
+    {
+        return read_file<std::string, std::ifstream, std::stringstream>(filename, file_has_to_exist);
     }
 
-    inline std::wstring read_file(const std::wstring& filename)
+    std::wstring read_file(const std::wstring& filename, bool file_has_to_exist = false)
     {
-        std::wifstream file(filename);
-        std::wstringstream buffer_stream;
-        buffer_stream << file.rdbuf();
-        return buffer_stream.str();
+        return read_file<std::wstring, std::wifstream, std::wstringstream>(filename, file_has_to_exist);
     }
 
     template<typename... _Args> inline
