@@ -22,17 +22,19 @@ namespace io
 
         void multi_file_dialogue(std::vector<std::wstring>& filenames)
         {
-            io::windowsapi::BasicFileOpen(filenames, FOS_ALLOWMULTISELECT);
+            io::windowsapi::MultiFileOpen(filenames);
         }
 
         std::wstring file_dialogue()
         {
-
+            std::wstring filename;
+            file_dialogue(filename);
+            return filename;
         }
 
         void file_dialogue(std::wstring& filename)
         {
-
+            io::windowsapi::SingleFileOpen(filename);
         }
     };
 }
