@@ -10,15 +10,14 @@
 #define RNP_NO_DEPRECATED
 #include <rnp/rnp.h>
 
+#include "pgpsuite_common.h"
+
 /* A collection of wrapper classes that utilize RAII to clean up the rnp C-objects
 * The wrapper classes can all be cast to their original C-type 
 * Rnp functions specific to a certain rnp type might be converted to member functions if applicable 
 * For most if not all wrapper classes, the copy constructor is deleted */
 namespace rnp
 {
-    /* Determines wether an rnp function was successfull */
-    constexpr int RNP_SUCCESS{ 0 };
-    
     /* IO Modes for the various IO classes */
     enum class IOMode { None, Memory, Path };
 
