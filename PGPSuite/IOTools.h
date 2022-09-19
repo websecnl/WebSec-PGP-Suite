@@ -27,12 +27,12 @@ namespace io
         }
     }
     
-    std::string read_file(const std::string& filename, bool file_has_to_exist = false)
+    inline std::string read_file(const std::string& filename, bool file_has_to_exist = false)
     {
         return read_file<std::string, std::ifstream, std::stringstream>(filename, file_has_to_exist);
     }
 
-    std::wstring read_file(const std::wstring& filename, bool file_has_to_exist = false)
+    inline std::wstring read_file(const std::wstring& filename, bool file_has_to_exist = false)
     {
         return read_file<std::wstring, std::wifstream, std::wstringstream>(filename, file_has_to_exist);
     }
