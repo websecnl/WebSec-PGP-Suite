@@ -119,7 +119,7 @@ namespace io::windowsapi
                     if (SUCCEEDED(hr))
                     {
                         // Allow multi select
-                        hr = pfd->SetOptions(dwFlags ^ FOS_ALLOWMULTISELECT);
+                        hr = pfd->SetOptions(dwFlags);
                         if (SUCCEEDED(hr))
                         {
                             /* probs a better way to do this, but cba now */
@@ -143,8 +143,8 @@ namespace io::windowsapi
                                             selected_item = std::wstring(filename);
                                             CoTaskMemFree(filename);
                                         }
+                                        result->Release();
                                     }
-                                    result->Release();
                                 }
                             }
                         }
