@@ -37,7 +37,7 @@ bool pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::s
     }
 
     /* have to make proper pass provider for here */
-    rnp_ffi_set_pass_provider(ffi, NULL/*example_pass_provider*/, nullptr);
+    rnp_ffi_set_pass_provider(ffi, generic_cin_pass_provider, nullptr);
 
     if (auto err = rnp_generate_key_json(ffi, json_data.c_str(), &key_grips.buffer);
         err != RNP_SUCCESS)
