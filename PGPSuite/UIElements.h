@@ -231,12 +231,12 @@ namespace suite::ui
 		{
 			set_input_state(m);
 
-			if (_state == InputBoxState::Focussed)
+			if (focussed())
 			{
 				handle_key_input();
 			}
 
-			if (_state == InputBoxState::Hover || _state == InputBoxState::FocussedHover)
+			if (hovered())
 			{
 				SetMouseCursor(MOUSE_CURSOR_IBEAM);
 			}
