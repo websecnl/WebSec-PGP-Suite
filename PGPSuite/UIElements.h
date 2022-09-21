@@ -108,7 +108,7 @@ namespace suite::ui
 				(_prev_state == ButtonState::LeftClicked || _prev_state == ButtonState::LeftHeld)
 				&& IsMouseButtonDown(MouseButton::MOUSE_RIGHT_BUTTON);
 
-			if (right_held ^ left_held) return ButtonState::None; /* no click */
+			if (!(right_held ^ left_held)) return ButtonState::None; /* no click */
 
 			return left_held ? ButtonState::LeftHeld : ButtonState::RightHeld;
 		}
