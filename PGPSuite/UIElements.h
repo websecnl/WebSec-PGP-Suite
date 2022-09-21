@@ -44,6 +44,11 @@ namespace suite::ui
 			std::for_each(_elements.begin(), _elements.end(), [&mouse](auto e) { e->update(mouse); });
 		}
 
+		void draw() const
+		{
+			std::for_each(_elements.begin(), _elements.end(), [](const auto e) { e->draw(); });
+		}
+
 		/* @brief add a UI element
 		@param args: the parameters necessary to construct the type 
 		@return a shared ptr with the added type */
@@ -89,7 +94,7 @@ namespace suite::ui
 			bool right_clicked = IsMouseButtonPressed(MouseButton::MOUSE_RIGHT_BUTTON);
 			bool left_clicked = IsMouseButtonPressed(MouseButton::MOUSE_LEFT_BUTTON);
 
-			if (right_clicked ^ left_clicked) return ButtonState::None; /* no click */
+			if (!(right_clicked ^ left_clicked)) return ButtonState::None; /* no click */
 			
 			return left_clicked ? ButtonState::LeftClicked : ButtonState::RightClicked;
 		}
@@ -141,6 +146,12 @@ namespace suite::ui
 			call_state(state);
 		}
 
+		void draw() const override
+		{
+			DrawRectangleLinesEx(_transform, 3, hover() ? GRAY : BLACK);
+		}
+
+		bool hover() const { return _state == ButtonState::Hover; }
 	};
 
 	enum class InputBoxState { None, Hover, Focussed, FocussedHover };
