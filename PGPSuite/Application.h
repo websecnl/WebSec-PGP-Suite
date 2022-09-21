@@ -37,4 +37,37 @@ namespace suite
 			on_draw();
 		}
 	};
+
+	class ApplicationRunner
+	{
+	protected:
+		Application* _app;
+	public:
+		ApplicationRunner(Application* app)
+			: _app(app)
+		{}
+
+		void run()
+		{
+			constexpr int width = 850;
+			constexpr int height = 650;
+
+			InitWindow(850, 650, "Window");
+
+			while (!WindowShouldClose())
+			{
+				_app->input();
+				_app->update();
+
+				BeginDrawing();
+				ClearBackground(WHITE);
+				
+				_app->draw();
+
+				EndDrawing();
+			}
+
+			CloseWindow();
+		}
+	};
 }
