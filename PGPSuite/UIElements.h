@@ -217,14 +217,14 @@ namespace suite::ui
 
 		void draw_carat(Vector2 text_size) const
 		{
-			Vector2 position = { _transform.x + text_size.x, (_transform.y / 2.f) + (text_size.y / 2.f) };
+			const Vector2 position = { _transform.x + text_size.x, _transform.y + (_transform.height / 2.f) - (text_size.y / 2.f) };
 			DrawRectangleV(position, { _fontsize / 2.f, _fontsize }, BLACK);
 		}
 	public:
 		StaticInputBox(Rectangle transform, float fontsize)
 			: UIElement(transform)
 			, _fontsize(fontsize)
-			, _key_max(calculate_max_characters())
+			, _key_max(calculate_max_characters() * 2)
 		{}
 
 		void update(Vector2 m) override
@@ -255,7 +255,7 @@ namespace suite::ui
 			if (!empty())
 			{
 				text_size = MeasureTextEx(GetFontDefault(), _buffer.c_str(), _fontsize, _fontsize / 10.f);
-				const Vector2 text_position = { _transform.x, (_transform.y / 2.f) + (text_size.y / 2.f) };
+				const Vector2 text_position = { _transform.x, _transform.y + ((_transform.height / 2.f) - (text_size.y / 2.f)) };
 				DrawTextEx(GetFontDefault(), _buffer.c_str(), text_position, _fontsize, _fontsize / 10.f, BLACK);
 			}
 			
