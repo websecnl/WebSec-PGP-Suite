@@ -45,15 +45,15 @@ namespace rnp
 
     /* Interface for the IO wrappers, handles deletion and io mode setting
     @param _IO type of the io object to be wrapped */
-    template<typename _IO>
+    template<typename _IO_Object>
     struct IIOWrapper
     {
-        using Destructor = std::function<void(_IO)>;
+        using Destructor = std::function<void(_IO_Object)>;
 
         IIOWrapper(Destructor func) : _destructor(func) {}
         IIOWrapper(const IIOWrapper&) = delete;
         ~IIOWrapper() { destroy(); }
-        operator _IO() { return io_object; }
+        operator _IO_Object() { return io_object; }
 
         void destroy()
         {
@@ -62,7 +62,7 @@ namespace rnp
         }
 
         /* The wrapped io object */
-        _IO io_object{};
+        _IO_Object io_object{};
 
         /* @brief Check if the io has been set to any mode */
         bool is_io_set() const noexcept { return _io_mode != IOMode::None; }
