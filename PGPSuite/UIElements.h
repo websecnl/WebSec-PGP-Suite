@@ -73,7 +73,6 @@ namespace suite::ui
 	protected:
 		using Callback = std::function<void()>;
 
-		ButtonState _state{ ButtonState::None };
 		std::unordered_map<ButtonState, Callback> _callbacks;
 		ButtonState _prev_state{ ButtonState::None };
 
@@ -151,7 +150,7 @@ namespace suite::ui
 			DrawRectangleLinesEx(_transform, 3, hover() ? GRAY : BLACK);
 		}
 
-		bool hover() const { return _state == ButtonState::Hover; }
+		bool hover() const { return _prev_state == ButtonState::Hover; }
 	};
 
 	enum class InputBoxState { None, Hover, Focussed, FocussedHover };
