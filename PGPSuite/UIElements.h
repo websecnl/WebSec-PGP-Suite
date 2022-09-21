@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <memory>
+#include <string>
 
 namespace suite::ui::helpers
 {
@@ -140,5 +141,109 @@ namespace suite::ui
 			call_state(state);
 		}
 
+	};
+
+	enum class InputBoxState { None, Hover, Focussed, FocussedHover };
+
+	/* non growing input box */
+	class StaticInputBox : 
+		public UIElement
+	{
+	protected:
+		std::string _buffer{};
+		InputBoxState _state{ InputBoxState::None };
+		float _fontsize{};
+		size_t _key_max{};
+
+		size_t calculate_max_characters()
+		{
+			/* 10 is default fontsize, 10 is the default, 10.0 is used to auto deduce to double */
+			auto pixel_width = _transform.width / (_fontsize + (_fontsize / 10.0));
+			return static_cast<size_t>(pixel_width);
+		}
+
+		void handle_key_input()
+		{
+			/* load in first keypress on queue if there is, if not it returns 0 */
+			int key = GetCharPressed();
+
+			if (!full())
+			{
+				while (key > 0)
+				{
+					/* only allowing keys in range 32 ... 125 */
+					if ((key >= 32) && (key <= 125))
+					{
+						_buffer.push_back(key);
+					}
+					/* get next key in queue */
+					key = GetCharPressed();
+				}
+			}
+
+			if (IsKeyPressed(KEY_BACKSPACE) && size() > 0)
+			{
+				_buffer.pop_back();
+			}
+		}
+
+		void set_input_state(Vector2 m)
+		{
+			bool is_hover = helpers::rectangle_v_point(_transform, m);
+			bool clicked = IsMouseButtonPressed(MouseButton::MOUSE_LEFT_BUTTON);
+			bool is_clicked = is_hover && clicked;
+
+			if (is_clicked) 
+				_state = InputBoxState::Focussed;
+
+			if (is_hover) /* if hover and was focussed set both else just hover */
+				_state = _state == InputBoxState::Focussed ? InputBoxState::FocussedHover : InputBoxState::Hover;
+			else if (clicked) /* if clicked but not on inputbox, turn off */
+				_state = InputBoxState::None;
+		}
+	public:
+		StaticInputBox(Rectangle transform, float fontsize)
+			: UIElement(transform)
+			, _fontsize(fontsize)
+			, _key_max(calculate_max_characters())
+		{}
+
+		void update(Vector2 m) override
+		{
+			set_input_state(m);
+
+			if (_state == InputBoxState::Focussed)
+			{
+				handle_key_input();
+			}
+
+			if (_state == InputBoxState::Hover)
+			{
+				SetMouseCursor(MOUSE_CURSOR_IBEAM);
+			}
+			else
+			{
+				SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+			}
+			
+		}
+
+		void draw() const override
+		{
+			DrawRectangleLinesEx(_transform, 4, BLACK);
+
+			if (size() > 0)
+			{
+				const auto text_size = MeasureTextEx(GetFontDefault(), _buffer.c_str(), _fontsize, _fontsize / 10.f);
+				const Vector2 text_position = { _transform.x, (_transform.y / 2.f) + (text_size.y / 2.f) };
+				DrawTextEx(GetFontDefault(), _buffer.c_str(), text_position, _fontsize, _fontsize / 10.f, BLACK);
+			}
+		}
+
+		size_t size() const { return _buffer.size(); }
+		bool full() const { return _key_max == (_buffer.size() - 1); }
+
+		std::string_view buffer() const { return _buffer; }
+		auto copy_buffer() const { return _buffer; }
 	};
 }
