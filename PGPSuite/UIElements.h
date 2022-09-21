@@ -100,7 +100,7 @@ namespace suite::ui
 				(_prev_state == ButtonState::RightClicked || _prev_state == ButtonState::RightHeld) 
 				&& IsMouseButtonDown(MouseButton::MOUSE_RIGHT_BUTTON);
 			bool left_held = 
-				(_prev_state == ButtonState::LeftHeld || _prev_state == ButtonState::LeftHeld)
+				(_prev_state == ButtonState::LeftClicked || _prev_state == ButtonState::LeftHeld)
 				&& IsMouseButtonDown(MouseButton::MOUSE_RIGHT_BUTTON);
 
 			if (right_held ^ left_held) return ButtonState::None; /* no click */
