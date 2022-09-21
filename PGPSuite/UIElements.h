@@ -201,6 +201,12 @@ namespace suite::ui
 			else if (clicked) /* if clicked but not on inputbox, turn off */
 				_state = InputBoxState::None;
 		}
+
+		void draw_carat(Vector2 text_size) const
+		{
+			Vector2 position = { _transform.x + text_size.x, (_transform.y / 2.f) + (text_size.y / 2.f) };
+			DrawRectangleV(position, { _fontsize / 2.f, _fontsize }, BLACK);
+		}
 	public:
 		StaticInputBox(Rectangle transform, float fontsize)
 			: UIElement(transform)
@@ -230,18 +236,27 @@ namespace suite::ui
 
 		void draw() const override
 		{
-			DrawRectangleLinesEx(_transform, 4, BLACK);
+			DrawRectangleLinesEx(_transform, 4, hovered() ? GRAY : BLACK);
+			Vector2 text_size{};
 
-			if (size() > 0)
+			if (!empty())
 			{
-				const auto text_size = MeasureTextEx(GetFontDefault(), _buffer.c_str(), _fontsize, _fontsize / 10.f);
+				text_size = MeasureTextEx(GetFontDefault(), _buffer.c_str(), _fontsize, _fontsize / 10.f);
 				const Vector2 text_position = { _transform.x, (_transform.y / 2.f) + (text_size.y / 2.f) };
 				DrawTextEx(GetFontDefault(), _buffer.c_str(), text_position, _fontsize, _fontsize / 10.f, BLACK);
+			}
+			
+			if (focussed() && !full())
+			{
+				draw_carat(text_size);
 			}
 		}
 
 		size_t size() const { return _buffer.size(); }
+		bool empty() const { return size() == 0; }
 		bool full() const { return _key_max == (_buffer.size() - 1); }
+		bool focussed() const { return _state == InputBoxState::Focussed || _state == InputBoxState::FocussedHover; }
+		bool hovered() const { return _state == InputBoxState::Hover || _state == InputBoxState::FocussedHover; }
 
 		std::string_view buffer() const { return _buffer; }
 		auto copy_buffer() const { return _buffer; }
