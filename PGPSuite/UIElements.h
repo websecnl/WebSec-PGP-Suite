@@ -164,13 +164,12 @@ namespace suite::ui
 		std::string _buffer{};
 		InputBoxState _state{ InputBoxState::None };
 		float _fontsize{};
-		size_t _key_max{};
+		bool _full{ false };
 
-		size_t calculate_max_characters()
+		void pop_back()
 		{
-			/* 10 is default fontsize, 10 is the default, 10.0 is used to auto deduce to double */
-			auto pixel_width = _transform.width / (_fontsize + (_fontsize / 10.0));
-			return static_cast<size_t>(pixel_width);
+			if (size() > 0)
+				_buffer.pop_back();
 		}
 
 		void handle_key_input()
@@ -186,15 +185,21 @@ namespace suite::ui
 					if ((key >= 32) && (key <= 125))
 					{
 						_buffer.push_back(key);
+						if (validate_text_size())
+						{
+							pop_back();
+							break;
+						}
 					}
 					/* get next key in queue */
 					key = GetCharPressed();
 				}
 			}
 
-			if (IsKeyPressed(KEY_BACKSPACE) && size() > 0)
+			if (IsKeyPressed(KEY_BACKSPACE))
 			{
-				_buffer.pop_back();
+				pop_back();
+				_full = false; /* we removed something so it cant be full */
 			}
 		}
 
@@ -215,16 +220,22 @@ namespace suite::ui
 				_state = InputBoxState::None;
 		}
 
+		/* @brief sets _full to true if text size too large and returns true */
+		bool validate_text_size()
+		{
+			const auto text_size = MeasureTextEx(GetFontDefault(), _buffer.c_str(), _fontsize, _fontsize / 10.f);
+			return _full = (_fontsize + text_size.x >= _transform.width - _fontsize);
+		}
+
 		void draw_carat(Vector2 text_size) const
 		{
-			const Vector2 position = { _transform.x + text_size.x, _transform.y + (_transform.height / 2.f) - (text_size.y / 2.f) };
+			const Vector2 position = { _fontsize + _transform.x + text_size.x, _transform.y + (_transform.height / 2.f) - (text_size.y / 2.f) };
 			DrawRectangleV(position, { _fontsize / 2.f, _fontsize }, BLACK);
 		}
 	public:
 		StaticInputBox(Rectangle transform, float fontsize)
 			: UIElement(transform)
 			, _fontsize(fontsize)
-			, _key_max(calculate_max_characters() * 2)
 		{}
 
 		void update(Vector2 m) override
@@ -250,12 +261,12 @@ namespace suite::ui
 		void draw() const override
 		{
 			DrawRectangleLinesEx(_transform, 4, hovered() ? GRAY : BLACK);
-			Vector2 text_size{};
-
+			Vector2 text_size{ 0.f, _fontsize };
+			
 			if (!empty())
 			{
 				text_size = MeasureTextEx(GetFontDefault(), _buffer.c_str(), _fontsize, _fontsize / 10.f);
-				const Vector2 text_position = { _transform.x, _transform.y + ((_transform.height / 2.f) - (text_size.y / 2.f)) };
+				const Vector2 text_position = { _fontsize + _transform.x, _transform.y + ((_transform.height / 2.f) - (text_size.y / 2.f)) };
 				DrawTextEx(GetFontDefault(), _buffer.c_str(), text_position, _fontsize, _fontsize / 10.f, BLACK);
 			}
 			
@@ -265,9 +276,11 @@ namespace suite::ui
 			}
 		}
 
+		void clear() { _buffer.clear(); }
+		
 		size_t size() const { return _buffer.size(); }
 		bool empty() const { return size() == 0; }
-		bool full() const { return _key_max == (_buffer.size() - 1); }
+		bool full() const { return _full; }
 		bool focussed() const { return _state == InputBoxState::Focussed || _state == InputBoxState::FocussedHover; }
 		bool hovered() const { return _state == InputBoxState::Hover || _state == InputBoxState::FocussedHover; }
 
