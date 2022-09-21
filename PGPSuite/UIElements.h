@@ -203,6 +203,8 @@ namespace suite::ui
 			bool is_hover = helpers::rectangle_v_point(_transform, m);
 			bool clicked = IsMouseButtonPressed(MouseButton::MOUSE_LEFT_BUTTON);
 			bool is_clicked = is_hover && clicked;
+			/* make sure to redo the hover check otherwise hover stays forever */
+			_state = focussed() ? InputBoxState::Focussed : InputBoxState::None;
 
 			if (is_clicked) 
 				_state = InputBoxState::Focussed;
