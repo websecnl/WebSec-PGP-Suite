@@ -127,20 +127,21 @@ namespace suite::ui
 		void update(Vector2 mouse) override
 		{
 			/* check if mouse is on the button */
-			if (!helpers::rectangle_v_point(_transform, mouse)) return;
-			
-			/* check if there was a click */
-			ButtonState state = was_mouse_clicked();
-			if (state == ButtonState::None)
+			ButtonState state{ ButtonState::None };
+			if (helpers::rectangle_v_point(_transform, mouse))
 			{
-				state = is_mouse_held();
+				/* check if there was a click */
+				state = was_mouse_clicked();
 				if (state == ButtonState::None)
 				{
-					/* if nothing else, its a hover event */
-					state = ButtonState::Hover;
+					state = is_mouse_held();
+					if (state == ButtonState::None)
+					{
+						/* if nothing else, its a hover event */
+						state = ButtonState::Hover;
+					}
 				}
 			}
-
 			_prev_state = state;
 			call_state(state);
 		}
