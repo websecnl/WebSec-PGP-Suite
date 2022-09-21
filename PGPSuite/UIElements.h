@@ -217,7 +217,7 @@ namespace suite::ui
 				handle_key_input();
 			}
 
-			if (_state == InputBoxState::Hover)
+			if (_state == InputBoxState::Hover || _state == InputBoxState::FocussedHover)
 			{
 				SetMouseCursor(MOUSE_CURSOR_IBEAM);
 			}
