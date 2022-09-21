@@ -161,6 +161,7 @@ namespace suite::ui
 		public UIElement
 	{
 	protected:
+		Font _font{};
 		std::string _buffer{};
 		InputBoxState _state{ InputBoxState::None };
 		float _fontsize{};
@@ -182,15 +183,15 @@ namespace suite::ui
 				while (key > 0)
 				{
 					/* only allowing keys in range 32 ... 125 */
-					if ((key >= 32) && (key <= 125))
-					{
+					//if ((key >= 32) && (key <= 125))
+					//{
 						_buffer.push_back(key);
 						if (validate_text_size())
 						{
 							pop_back();
 							break;
 						}
-					}
+					// }
 					/* get next key in queue */
 					key = GetCharPressed();
 				}
@@ -223,7 +224,7 @@ namespace suite::ui
 		/* @brief sets _full to true if text size too large and returns true */
 		bool validate_text_size()
 		{
-			const auto text_size = MeasureTextEx(GetFontDefault(), _buffer.c_str(), _fontsize, _fontsize / 10.f);
+			const auto text_size = measure_text();
 			return _full = (_fontsize + text_size.x >= _transform.width - _fontsize);
 		}
 
@@ -232,10 +233,17 @@ namespace suite::ui
 			const Vector2 position = { _fontsize + _transform.x + text_size.x, _transform.y + (_transform.height / 2.f) - (text_size.y / 2.f) };
 			DrawRectangleV(position, { _fontsize / 2.f, _fontsize }, BLACK);
 		}
+
+		void draw_text(Vector2 text_size) const
+		{
+			const Vector2 position = { _fontsize + _transform.x, std::truncf(_transform.y + ((_transform.height / 2.f) - (text_size.y / 2.f))) };
+			DrawTextEx(_font, _buffer.c_str(), position, _fontsize, _fontsize / 10.f, BLACK);
+		}
 	public:
-		StaticInputBox(Rectangle transform, float fontsize)
+		StaticInputBox(Rectangle transform, float fontsize, Font font = GetFontDefault())
 			: UIElement(transform)
 			, _fontsize(fontsize)
+			, _font(font)
 		{}
 
 		void update(Vector2 m) override
@@ -261,13 +269,11 @@ namespace suite::ui
 		void draw() const override
 		{
 			DrawRectangleLinesEx(_transform, 4, hovered() ? GRAY : BLACK);
-			Vector2 text_size{ 0.f, _fontsize };
+			const Vector2 text_size = empty() ? Vector2{ 0.f, _fontsize } : measure_text();
 			
 			if (!empty())
 			{
-				text_size = MeasureTextEx(GetFontDefault(), _buffer.c_str(), _fontsize, _fontsize / 10.f);
-				const Vector2 text_position = { _fontsize + _transform.x, _transform.y + ((_transform.height / 2.f) - (text_size.y / 2.f)) };
-				DrawTextEx(GetFontDefault(), _buffer.c_str(), text_position, _fontsize, _fontsize / 10.f, BLACK);
+				draw_text(text_size);
 			}
 			
 			if (focussed() && !full())
@@ -283,6 +289,7 @@ namespace suite::ui
 		bool full() const { return _full; }
 		bool focussed() const { return _state == InputBoxState::Focussed || _state == InputBoxState::FocussedHover; }
 		bool hovered() const { return _state == InputBoxState::Hover || _state == InputBoxState::FocussedHover; }
+		Vector2 measure_text() const { return MeasureTextEx(_font, _buffer.c_str(), _fontsize, _fontsize / 10.f); }
 
 		std::string_view buffer() const { return _buffer; }
 		auto copy_buffer() const { return _buffer; }
