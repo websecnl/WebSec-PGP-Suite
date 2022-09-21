@@ -41,7 +41,7 @@ namespace suite::ui
 	public:
 		void update(Vector2 mouse)
 		{
-			std::for_each(_elements.begin(), _elements.end(), [&mouse](UIElement* e) { e->update(mouse); });
+			std::for_each(_elements.begin(), _elements.end(), [&mouse](auto e) { e->update(mouse); });
 		}
 
 		/* @brief add a UI element
@@ -50,7 +50,7 @@ namespace suite::ui
 		template<typename _UI, typename... _Args>
 		auto add_element(_Args&&... args)
 		{
-			auto ptr = std::make_shared<_UI>(std::forward<_Args>(args), ...);
+			auto ptr = std::make_shared<_UI>(std::forward<_Args>(args)...);
 			_elements.push_back(ptr);
 			return ptr;
 		}
