@@ -17,19 +17,38 @@ namespace suite::ui::helpers
 	}
 }
 
+namespace suite::ui::drawing
+{
+	/* Custom version of DrawTextRecEx which returns the height required to fit the text but does NOT draw anything 
+	incompatible with newer versions of Raylib, as of now version raylib 3.7.0 (26 April 2021) is used */
+	float measure_text_height(Font font, const char* text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint, int selectStart = 0, int selectLength = 0, Color selectTint = WHITE, Color selectBackTint = WHITE);
+}
+
 namespace suite::ui
 {
 	class UIElement
 	{
 	protected:
 		Rectangle _transform;
+		bool _hidden{ false };
+
+		virtual void on_draw() const {}
 	public:
 		UIElement(Rectangle transform)
 			: _transform(transform)
 		{}
 
+		void hide() { _hidden = true; }
+		bool hidden() const { return _hidden; }
+		void reveal() { _hidden = false; }
+
 		virtual void update(Vector2) {}
-		virtual void draw() const {}
+
+		void draw() const 
+		{
+			if (_hidden) return;
+			on_draw();
+		}
 	};
 	
 	class UIContainer
@@ -64,7 +83,8 @@ namespace suite::ui
 		auto end() { return _elements.end(); }
 	};
 
-	enum class ButtonState { LeftClicked, RightClicked, Hover, LeftHeld, RightHeld, None };
+	/* TODO: make a global Clickable object that has these states and automatically assigns them to a state */
+	enum class ButtonState { LeftClicked, RightClicked, Hover, LeftHeld, RightHeld, WasHover, None };
 
 	/*  */
 	class Button 
@@ -142,11 +162,17 @@ namespace suite::ui
 					}
 				}
 			}
+			else
+			{ /* mouse is not on button but if it was then it has just left */
+				if (_prev_state != ButtonState::None)
+					state = ButtonState::WasHover;
+			}
+
 			_prev_state = state;
 			call_state(state);
 		}
 
-		void draw() const override
+		void on_draw() const override
 		{
 			DrawRectangleLinesEx(_transform, 3, hover() ? GRAY : BLACK);
 		}
@@ -266,7 +292,7 @@ namespace suite::ui
 			
 		}
 
-		void draw() const override
+		void on_draw() const override
 		{
 			DrawRectangleLinesEx(_transform, 4, hovered() ? GRAY : BLACK);
 			const Vector2 text_size = empty() ? Vector2{ 0.f, _fontsize } : measure_text();
@@ -304,15 +330,23 @@ namespace suite::ui
 		std::string _text;
 		float _fontsize{};
 
+		Rectangle get_margined_rec() const
+		{
+			Rectangle margin_transform{ _transform };
+			margin_transform.x += _fontsize;
+			margin_transform.y += _fontsize;
+			margin_transform.width -= _fontsize * 2.f;
+			margin_transform.height -= _fontsize * 2.f;
+			return margin_transform;
+		}
+
 		/* call whenever member transform gets changed, it sets the height of member _transform */
 		void size_box_to_text()
 		{
 			if (_text.size() < 1) return;
 
-			const auto total_len = MeasureTextEx(_font, _text.c_str(), _fontsize, _fontsize/10.f);
-			const float vertical_height = ((float)_font.baseSize + _font.baseSize / 2.f) * (_fontsize / (float)_font.baseSize);
-			const float num_lines = std::ceilf(total_len.x / _transform.width) + 1.f; /* add 1 cause margins */
-			_transform.height = vertical_height * num_lines;
+			_transform.height = drawing::measure_text_height(_font, _text.c_str(), get_margined_rec(), _fontsize, _fontsize / 10.f, true, BLACK);
+			_transform.height += _fontsize * 2.f; /* add margins */
 		}
 	public:
 		/* NOTE: the .height member of transform gets ignored */
@@ -331,14 +365,10 @@ namespace suite::ui
 			size_box_to_text();
 		}
 
-		void draw() const override
+		void on_draw() const override
 		{
 			DrawRectangleLinesEx(_transform, 4, BLACK);
-			Rectangle margin_transform{ _transform };
-			margin_transform.x += _fontsize;
-			margin_transform.y += _fontsize;
-			margin_transform.width  -= _fontsize * 2.f;
-			margin_transform.height -= _fontsize * 2.f;
+			Rectangle margin_transform = get_margined_rec();
 			DrawTextRecEx(_font, _text.c_str(), margin_transform, _fontsize, _fontsize / 10.f, true, BLACK, 0, 0, WHITE, WHITE);
 		}
 	};
