@@ -1,6 +1,7 @@
 #pragma once
 
 #include "OpenFileDiag.h"
+#include "Utils.h"
 
 namespace io
 {
@@ -11,6 +12,18 @@ namespace io
         WindowsDialogues()
         {
             auto hr = CoInitialize(NULL);
+        }
+
+        void simple_pop_up(std::string& title_text, std::string& info_text)
+        {
+            TaskDialog(NULL,
+                NULL,
+                pgp::utils::utf8_decode(title_text).c_str(),
+                pgp::utils::utf8_decode(info_text).c_str(),
+                NULL,
+                TDCBF_OK_BUTTON,
+                TD_INFORMATION_ICON,
+                NULL);
         }
 
         std::vector<std::wstring> multi_file_dialogue()
