@@ -27,7 +27,7 @@ namespace suite
 
         void start() override
         {
-            _ui.add_element<ui::DynamicTextBox>(Rectangle{ 0.f, 100.f, 200.f,200.f }, 20.f, "Welcome to the key generation window! heere we generate keys");
+            _ui.add_element<ui::DynamicTextBox>(Rectangle{ 0.f, 100.f, 200.f,200.f }, 20.f, "Welcome to the key generation window! Here we generate keys");
         }
     };
 
@@ -71,6 +71,8 @@ namespace suite
 
         void init()
         {
+            add_state<PGPSuiteKeyGeneration>(SuiteStates::GenerateKey);
+
             auto button = _ui.add_element<ui::Button>(Rectangle{ 50.f,50.f,200.f,100.f });
             button->bind(ui::ButtonState::LeftClicked, [this]() { switch_state(SuiteStates::GenerateKey); });
         }
