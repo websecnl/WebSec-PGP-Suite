@@ -29,7 +29,6 @@ namespace suite
 			on_input();
 		}
 
-		/* updating UI elements */
 		void update()
 		{
 			on_update();
