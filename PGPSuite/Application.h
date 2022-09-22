@@ -17,8 +17,11 @@ namespace suite
 	public:
 		Application() = default;
 		
+		/* call when opengl context is loaded */
+		virtual void start() {}
+
 		/* handling user input */
-		virtual void input()
+		void input()
 		{
 			const auto m = GetMousePosition();
 			_ui.update(m);
@@ -32,9 +35,10 @@ namespace suite
 			on_update();
 		}
 
-		virtual void draw() const
+		void draw() const
 		{
 			on_draw();
+			_ui.draw();
 		}
 	};
 
@@ -53,6 +57,8 @@ namespace suite
 			constexpr int height = 650;
 
 			InitWindow(850, 650, "Window");
+
+			_app->start();
 
 			while (!WindowShouldClose())
 			{
