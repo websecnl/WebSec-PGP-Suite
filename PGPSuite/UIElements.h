@@ -294,4 +294,52 @@ namespace suite::ui
 		std::string_view buffer() const { return _buffer; }
 		auto copy_buffer() const { return _buffer; }
 	};
+
+	/* Small box that can be filled with texts and grows with it */
+	class DynamicTextBox
+		: public UIElement
+	{
+	protected:
+		Font _font;
+		std::string _text;
+		float _fontsize{};
+
+		/* call whenever member transform gets changed, it sets the height of member _transform */
+		void size_box_to_text()
+		{
+			if (_text.size() < 1) return;
+
+			const auto total_len = MeasureTextEx(_font, _text.c_str(), _fontsize, _fontsize/10.f);
+			const float vertical_height = ((float)_font.baseSize + _font.baseSize / 2.f) * (_fontsize / (float)_font.baseSize);
+			const float num_lines = std::ceilf(total_len.x / _transform.width) + 1.f; /* add 1 cause margins */
+			_transform.height = vertical_height * num_lines;
+		}
+	public:
+		/* NOTE: the .height member of transform gets ignored */
+		DynamicTextBox(Rectangle transform, float fontsize, std::string text, Font font = GetFontDefault())
+			: UIElement(transform)
+			, _text(text)
+			, _fontsize(fontsize)
+			, _font(font)
+		{
+			size_box_to_text();
+		}
+
+		void text(std::string text)
+		{
+			_text = text;
+			size_box_to_text();
+		}
+
+		void draw() const override
+		{
+			DrawRectangleLinesEx(_transform, 4, BLACK);
+			Rectangle margin_transform{ _transform };
+			margin_transform.x += _fontsize;
+			margin_transform.y += _fontsize;
+			margin_transform.width  -= _fontsize * 2.f;
+			margin_transform.height -= _fontsize * 2.f;
+			DrawTextRecEx(_font, _text.c_str(), margin_transform, _fontsize, _fontsize / 10.f, true, BLACK, 0, 0, WHITE, WHITE);
+		}
+	};
 }
