@@ -57,14 +57,18 @@ namespace suite::ui
 		using ElementPtr = std::shared_ptr<UIElement>;
 
 		std::vector<ElementPtr> _elements;
+
+		bool _hide{ false };
 	public:
 		void update(Vector2 mouse)
 		{
+			if (_hide) return;
 			std::for_each(_elements.begin(), _elements.end(), [&mouse](auto e) { e->update(mouse); });
 		}
 
 		void draw() const
 		{
+			if (_hide) return;
 			std::for_each(_elements.begin(), _elements.end(), [](const auto e) { e->draw(); });
 		}
 
@@ -81,6 +85,9 @@ namespace suite::ui
 
 		auto begin() { return _elements.begin(); }
 		auto end() { return _elements.end(); }
+
+		void hide() { _hide = true; }
+		void show() { _hide = false; }
 	};
 
 	/* TODO: make a global Clickable object that has these states and automatically assigns them to a state */
