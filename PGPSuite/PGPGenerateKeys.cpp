@@ -2,7 +2,19 @@
 
 bool pgp::generic_cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle_t key, const char* pgp_context, char buf[], size_t buf_len)
 {
-    std::cout << "Nothing for no\n";
+    /* when generating the key the first time this is prompted is when
+    the user is asked to write a password for their secret key
+    the second time is to unlock their secret which already is unlocked
+    so we skip the second call */
+    static bool skip_next_call{ false };
+
+    if (skip_next_call)
+    {/* if user generates another key we dont wanna skip that */
+        skip_next_call = false;
+        return true;
+    }
+
+    std::cout << "Write password to protect key\n";
     std::string input = io::prompt_input(pgp_context, ": ");
 
     auto end = input.end();
@@ -13,6 +25,8 @@ bool pgp::generic_cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle
     }
 
     std::copy(input.begin(), end, buf);
+
+    skip_next_call = true;
 
     return input.size() > 0;
 }
