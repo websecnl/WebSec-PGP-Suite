@@ -2,6 +2,9 @@
 
 #include "Application.h"
 #include <iostream>
+#include "PGPGenerateKeys.h"
+#include "IOTools.h"
+#include "WindowsDialogues.h"
 
 namespace suite
 {
@@ -11,6 +14,7 @@ namespace suite
     {
     protected:
         int _width{}, _height{};
+        io::WindowsDialogues _win_diags;
 
         void on_update() override
         {
@@ -19,13 +23,16 @@ namespace suite
 
         void init()
         {
-            auto button = _ui.add_element<ui::Button>(Rectangle{ 20.f,20.f,50.f,20.f });
+            float button_width = 100.f, button_height = 40.f;
+            
+            auto button = _ui.add_element<ui::Button>(Rectangle{ 50.f,50.f, button_width, button_height });
 
-            auto textbox = _ui.add_element<ui::StaticInputBox>(Rectangle{ 20.f,50.f,500.f,40.f }, 10.f);
-
-            auto text = _ui.add_element<ui::DynamicTextBox>(Rectangle{ 20.f,100.f,550.f,40.f }, 30.f, std::string("Hello world! Textbox here!"));
-
-            button->bind(ui::ButtonState::LeftClicked, [textbox, text]() { text->text(textbox->copy_buffer()); });
+            button->bind(ui::ButtonState::LeftClicked, [this]()
+                {
+                    bool result = pgp::generate_keys();
+                    static std::string success = "Success!", failure = "Failed!", desc = "Saved keys to secring.pgp and keyring.pgp";
+                    _win_diags.simple_pop_up(result ? success : failure, result ? desc : failure);
+                });
         }
     public:
         /* @param width: Window width
