@@ -130,7 +130,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\x64-Debug\src\lib\Debug;C:\raylib\raylib\projects\VS2019\build\raylib\bin\x64\Debug;$(TargetDir)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>C:\dev\vcpkg\installed\x64-windows\debug\lib\json-c.lib;C:\dev\vcpkg\installed\x64-windows\debug\lib\getopt.lib;C:\dev\vcpkg\installed\x64-windows\debug\lib\botan.lib;C:\dev\vcpkg\installed\x64-windows\debug\lib\bz2d.lib;C:\dev\vcpkg\installed\x64-windows\debug\lib\zlibd.lib;librnp.lib;LewLib Raylib.lib;winmm.lib;raylib.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>propsys.lib;shlwapi.lib;C:\dev\vcpkg\installed\x64-windows\debug\lib\json-c.lib;C:\dev\vcpkg\installed\x64-windows\debug\lib\getopt.lib;C:\dev\vcpkg\installed\x64-windows\debug\lib\botan.lib;C:\dev\vcpkg\installed\x64-windows\debug\lib\bz2d.lib;C:\dev\vcpkg\installed\x64-windows\debug\lib\zlibd.lib;librnp.lib;LewLib Raylib.lib;winmm.lib;raylib.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -151,7 +151,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\libs\rnp-msvc-release\release-build\src\lib\Release;C:\raylib\raylib\projects\VS2019\build\raylib\bin\x64\Release;$(MSBuildProjectDirectory)\rel-dlls;$(TargetDir);$(ProjectDir)rel-dlls\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>C:\dev\vcpkg\installed\x64-windows\lib\json-c.lib;C:\dev\vcpkg\installed\x64-windows\lib\getopt.lib;C:\dev\vcpkg\installed\x64-windows\lib\botan.lib;C:\dev\vcpkg\installed\x64-windows\lib\bz2.lib;C:\dev\vcpkg\installed\x64-windows\lib\zlib.lib;librnp.lib;LewLib Raylib.lib;winmm.lib;raylib.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>propsys.lib;shlwapi.lib;C:\dev\vcpkg\installed\x64-windows\lib\json-c.lib;C:\dev\vcpkg\installed\x64-windows\lib\getopt.lib;C:\dev\vcpkg\installed\x64-windows\lib\botan.lib;C:\dev\vcpkg\installed\x64-windows\lib\bz2.lib;C:\dev\vcpkg\installed\x64-windows\lib\zlib.lib;librnp.lib;LewLib Raylib.lib;winmm.lib;raylib.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -161,9 +161,25 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">PLATFORM_DESKTOP;GRAPHICS_API_OPENGL_33;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">PLATFORM_DESKTOP;GRAPHICS_API_OPENGL_33;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="PGPDecrypt.cpp" />
+    <ClCompile Include="PGPEncrypt.cpp" />
+    <ClCompile Include="PGPGenerateKeys.cpp" />
+    <ClCompile Include="UIElements.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="CDialogEventHandler.h" />
+    <ClInclude Include="IOTools.h" />
+    <ClInclude Include="OpenFileDiag.h" />
+    <ClInclude Include="PGPDecrypt.h" />
+    <ClInclude Include="PGPEncrypt.h" />
+    <ClInclude Include="PGPGenerateKeys.h" />
+    <ClInclude Include="PGPSuiteApplication.h" />
+    <ClInclude Include="pgpsuite_common.h" />
     <ClInclude Include="rnp_wrappers.h" />
+    <ClInclude Include="UIElements.h" />
+    <ClInclude Include="Utils.h" />
+    <ClInclude Include="WindowsDialogues.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

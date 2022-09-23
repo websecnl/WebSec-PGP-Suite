@@ -18,9 +18,57 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UIElements.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PGPDecrypt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PGPEncrypt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PGPGenerateKeys.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rnp_wrappers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Application.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CDialogEventHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IOTools.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenFileDiag.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PGPDecrypt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PGPEncrypt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PGPGenerateKeys.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pgpsuite_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PGPSuiteApplication.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UIElements.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsDialogues.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
