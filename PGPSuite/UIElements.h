@@ -39,6 +39,20 @@ namespace suite::ui::drawing
 
 namespace suite::ui
 {
+	namespace
+	{
+		// static int mouse_setting = MouseCursor::MOUSE_CURSOR_DEFAULT;
+		// static void set_mouse_if_default(int mouse)
+		// {
+		// 	if (mouse_setting != MouseCursor::MOUSE_CURSOR_DEFAULT) return;
+		// 	mouse_setting = mouse;
+		// }
+		// static void set_mouse(int mouse)
+		// {
+		// 	mouse_setting = mouse;
+		// }
+	}
+
 	class UIElement
 	{
 	protected:
@@ -160,7 +174,7 @@ namespace suite::ui
 			}
 			else
 			{ /* mouse is not on button but if it was then it has just left */
-				if (_state != ButtonState::None)
+				if (!no_state() && !washover())
 					state = ButtonState::WasHover;
 			}
 
@@ -172,6 +186,7 @@ namespace suite::ui
 		/* handy queries */
 		bool no_state() const { return _state == ButtonState::None; }
 		bool hover() const { return _state == ButtonState::Hover; }
+		bool washover() const { return _state == ButtonState::WasHover; }
 		bool leftclicked() const { return _state == ButtonState::LeftClicked; }
 	};
 
@@ -222,6 +237,15 @@ namespace suite::ui
 			handle_state(mouse);
 			
 			if (no_state()) return;
+
+			if (hover())
+			{
+				SetMouseCursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
+			}
+			else if (washover())
+			{
+				SetMouseCursor(MouseCursor::MOUSE_CURSOR_DEFAULT);
+			}
 
 			call_state(_state);
 		}
@@ -331,12 +355,12 @@ namespace suite::ui
 			if (hover())
 			{
 				SetMouseCursor(MOUSE_CURSOR_IBEAM);
+				
 			}
-			else
+			else if (washover())
 			{
 				SetMouseCursor(MOUSE_CURSOR_DEFAULT);
 			}
-			
 		}
 
 		void on_draw() const override
