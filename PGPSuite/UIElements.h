@@ -23,8 +23,8 @@ namespace suite::ui::helpers
 		const auto size = MeasureTextEx(font, str.c_str(), fontsize, fontsize/10.f);
 		return Vector2
 		{
-			(rec.x + (rec.width / 2.f)) - (size.x / 2.f),
-			(rec.y + (rec.height / 2.f)) - (size.y / 2.f)
+			std::truncf((rec.x + (rec.width / 2.f)) - (size.x / 2.f)),
+			std::truncf((rec.y + (rec.height / 2.f)) - (size.y / 2.f))
 		};
 	}
 }
@@ -392,6 +392,7 @@ namespace suite::ui
 		bool has_ghost_text() const { return _ghost_text.size() > 0; }
 		Vector2 measure_text(const std::string& text) const { return MeasureTextEx(_font, text.c_str(), _fontsize, _fontsize / 10.f); }
 
+		void set_buffer(std::string to) { _buffer = to; }
 		std::string_view buffer() const { return _buffer; }
 		auto copy_buffer() const { return _buffer; }
 	};
