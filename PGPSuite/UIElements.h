@@ -245,6 +245,7 @@ namespace suite::ui
 	protected:
 		Font _font{};
 		std::string _buffer{};
+		std::string _ghost_text{}; /* text that appears when input is empty */
 		float _fontsize{};
 		bool _full{ false };
 		bool _focussed{ false };
@@ -285,7 +286,7 @@ namespace suite::ui
 		/* @brief sets _full to true if text size too large and returns true */
 		bool validate_text_size()
 		{
-			const auto text_size = measure_text();
+			const auto text_size = measure_text(_buffer);
 			return _full = (_fontsize + text_size.x >= _transform.width - _fontsize);
 		}
 
@@ -295,16 +296,23 @@ namespace suite::ui
 			DrawRectangleV(position, { _fontsize / 2.f, _fontsize }, BLACK);
 		}
 
-		void draw_text(Vector2 text_size) const
+		void draw_text(const std::string& text, Vector2 text_size, Color color = BLACK) const
 		{
 			const Vector2 position = { _fontsize + _transform.x, std::truncf(_transform.y + ((_transform.height / 2.f) - (text_size.y / 2.f))) };
-			DrawTextEx(_font, _buffer.c_str(), position, _fontsize, _fontsize / 10.f, BLACK);
+			DrawTextEx(_font, text.c_str(), position, _fontsize, _fontsize / 10.f, color);
 		}
 	public:
 		StaticInputBox(Rectangle transform, float fontsize, Font font = GetFontDefault())
 			: IClickable(transform)
 			, _fontsize(fontsize)
 			, _font(font)
+		{}
+		
+		StaticInputBox(Rectangle transform, float fontsize, std::string ghost_text, Font font = GetFontDefault())
+			: IClickable(transform)
+			, _fontsize(fontsize)
+			, _font(font)
+			, _ghost_text(ghost_text)
 		{}
 
 		void update(Vector2 m) override
@@ -334,11 +342,15 @@ namespace suite::ui
 		void on_draw() const override
 		{
 			DrawRectangleLinesEx(_transform, 4, hover() ? GRAY : BLACK);
-			const Vector2 text_size = empty() ? Vector2{ 0.f, _fontsize } : measure_text();
+			const Vector2 text_size = empty() ? Vector2{ 0.f, _fontsize } : measure_text(_buffer);
 			
 			if (!empty())
 			{
-				draw_text(text_size);
+				draw_text(_buffer, text_size);
+			}
+			else if (has_ghost_text() && !focussed())
+			{
+				draw_text(_ghost_text, measure_text(_ghost_text), GRAY);
 			}
 			
 			if (focussed() && !full())
@@ -353,7 +365,8 @@ namespace suite::ui
 		bool empty() const { return size() == 0; }
 		bool full() const { return _full; }
 		bool focussed() const { return _focussed; }
-		Vector2 measure_text() const { return MeasureTextEx(_font, _buffer.c_str(), _fontsize, _fontsize / 10.f); }
+		bool has_ghost_text() const { return _ghost_text.size() > 0; }
+		Vector2 measure_text(const std::string& text) const { return MeasureTextEx(_font, text.c_str(), _fontsize, _fontsize / 10.f); }
 
 		std::string_view buffer() const { return _buffer; }
 		auto copy_buffer() const { return _buffer; }
