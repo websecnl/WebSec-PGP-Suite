@@ -1,6 +1,7 @@
 #pragma once
 
 #include <raylib.h>
+
 #include <functional>
 #include <vector>
 #include <unordered_map>
@@ -15,8 +16,20 @@ namespace suite::ui::helpers
 		return (b.x >= a.x && b.x <= a.x + a.width)
 			&& (b.y >= a.y && b.y <= a.y + a.height);
 	}
+
+	/* @return Position where text would be centered inside of a rectangle */
+	inline Vector2 center_text_rect(const std::string& str, Rectangle rec, float fontsize, Font font = GetFontDefault())
+	{
+		const auto size = MeasureTextEx(font, str.c_str(), fontsize, fontsize/10.f);
+		return Vector2
+		{
+			(rec.x + (rec.width / 2.f)) - (size.x / 2.f),
+			(rec.y + (rec.height / 2.f)) - (size.y / 2.f)
+		};
+	}
 }
 
+/* should move this to the helpers*/
 namespace suite::ui::drawing
 {
 	/* Custom version of DrawTextRecEx which returns the height required to fit the text but does NOT draw anything 
@@ -170,6 +183,9 @@ namespace suite::ui
 		using Callback = std::function<void()>;
 
 		std::unordered_map<ButtonState, Callback> _callbacks;
+		std::string _button_text{}; /* text on button */
+		float _fontsize{};
+		Vector2 _text_position{};
 
 		bool state_has_event(ButtonState state) const
 		{
@@ -184,6 +200,13 @@ namespace suite::ui
 	public:
 		Button(Rectangle transform)
 			: IClickable(transform)
+		{}
+		
+		Button(Rectangle transform, float fontsize, std::string button_text)
+			: IClickable(transform)
+			, _button_text(button_text)
+			, _fontsize(fontsize)
+			, _text_position(helpers::center_text_rect(_button_text, _transform, _fontsize))
 		{}
 		
 		/* @brief Will bind a callback to a state. Only one callback can be added per event.
@@ -206,10 +229,14 @@ namespace suite::ui
 		void on_draw() const override
 		{
 			DrawRectangleLinesEx(_transform, 3, hover() ? GRAY : BLACK);
-		}
-	};
+			
+			if (!has_text()) return;
 
-	enum class InputBoxState { None, Hover, Focussed, FocussedHover };
+			DrawTextEx(GetFontDefault(), _button_text.c_str(), _text_position, _fontsize, _fontsize / 10.f, BLACK);
+		}
+
+		bool has_text() const { return _button_text.size() > 0; }
+	};
 
 	/* non growing input box */
 	class StaticInputBox : 
