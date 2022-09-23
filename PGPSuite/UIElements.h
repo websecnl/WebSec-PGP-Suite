@@ -93,27 +93,12 @@ namespace suite::ui
 	/* TODO: make a global Clickable object that has these states and automatically assigns them to a state */
 	enum class ButtonState { LeftClicked, RightClicked, Hover, LeftHeld, RightHeld, WasHover, None };
 
-	/*  */
-	class Button 
+	/* interface class that adds user interaction to UIElements, make sure to call member function 'handle_state'
+	uses the _transform member from base class UIElement to determine interactions */
+	class IClickable
 		: public UIElement
 	{
-	protected:
-		using Callback = std::function<void()>;
-
-		std::unordered_map<ButtonState, Callback> _callbacks;
-		ButtonState _prev_state{ ButtonState::None };
-
-		bool state_has_event(ButtonState state) const
-		{
-			return _callbacks.find(state) != _callbacks.end();
-		}
-
-		void call_state(ButtonState state)
-		{
-			if (!state_has_event(state)) return;
-			_callbacks[state].operator()();
-		}
-
+	private:
 		/* checks if mouse was clicked and returns which button if so */
 		ButtonState was_mouse_clicked()
 		{
@@ -121,40 +106,31 @@ namespace suite::ui
 			bool left_clicked = IsMouseButtonPressed(MouseButton::MOUSE_LEFT_BUTTON);
 
 			if (!(right_clicked ^ left_clicked)) return ButtonState::None; /* no click */
-			
+
 			return left_clicked ? ButtonState::LeftClicked : ButtonState::RightClicked;
 		}
 
 		ButtonState is_mouse_held()
 		{
-			bool right_held = 
-				(_prev_state == ButtonState::RightClicked || _prev_state == ButtonState::RightHeld) 
+			bool right_held =
+				(_state == ButtonState::RightClicked || _state == ButtonState::RightHeld)
 				&& IsMouseButtonDown(MouseButton::MOUSE_RIGHT_BUTTON);
-			bool left_held = 
-				(_prev_state == ButtonState::LeftClicked || _prev_state == ButtonState::LeftHeld)
-				&& IsMouseButtonDown(MouseButton::MOUSE_RIGHT_BUTTON);
+			bool left_held =
+				(_state == ButtonState::LeftClicked || _state == ButtonState::LeftHeld)
+				&& IsMouseButtonDown(MouseButton::MOUSE_LEFT_BUTTON);
 
 			if (!(right_held ^ left_held)) return ButtonState::None; /* no click */
 
 			return left_held ? ButtonState::LeftHeld : ButtonState::RightHeld;
 		}
-	public:
-		Button(Rectangle transform)
-			: UIElement(transform)
-		{}
-		
-		/* @brief Will bind a callback to a state. Only one callback can be added per event.
-		@param state: the state that will trigger the callback cannot be None 
-		@param event: the callback to be triggered, is of signature void() */
-		void bind(ButtonState state, Callback event)
-		{
-			_callbacks[state] = event;
-		}
+	protected:
+		ButtonState _state{ ButtonState::None };
 
-		void update(Vector2 mouse) override
+		void handle_state(Vector2 mouse)
 		{
-			/* check if mouse is on the button */
+			/* check if mouse is on item */
 			ButtonState state{ ButtonState::None };
+
 			if (helpers::rectangle_v_point(_transform, mouse))
 			{
 				/* check if there was a click */
@@ -171,34 +147,80 @@ namespace suite::ui
 			}
 			else
 			{ /* mouse is not on button but if it was then it has just left */
-				if (_prev_state != ButtonState::None)
+				if (_state != ButtonState::None)
 					state = ButtonState::WasHover;
 			}
 
-			_prev_state = state;
-			call_state(state);
+			_state = state;
+		}
+	public:
+		using UIElement::UIElement;
+
+		/* handy queries */
+		bool no_state() const { return _state == ButtonState::None; }
+		bool hover() const { return _state == ButtonState::Hover; }
+		bool leftclicked() const { return _state == ButtonState::LeftClicked; }
+	};
+
+	/*  */
+	class Button 
+		: public IClickable
+	{
+	protected:
+		using Callback = std::function<void()>;
+
+		std::unordered_map<ButtonState, Callback> _callbacks;
+
+		bool state_has_event(ButtonState state) const
+		{
+			return _callbacks.find(state) != _callbacks.end();
+		}
+
+		void call_state(ButtonState state)
+		{
+			if (!state_has_event(state)) return;
+			_callbacks[state].operator()();
+		}
+	public:
+		Button(Rectangle transform)
+			: IClickable(transform)
+		{}
+		
+		/* @brief Will bind a callback to a state. Only one callback can be added per event.
+		@param state: the state that will trigger the callback cannot be None 
+		@param event: the callback to be triggered, is of signature void() */
+		void bind(ButtonState state, Callback event)
+		{
+			_callbacks[state] = event;
+		}
+
+		void update(Vector2 mouse) override
+		{
+			handle_state(mouse);
+			
+			if (no_state()) return;
+
+			call_state(_state);
 		}
 
 		void on_draw() const override
 		{
 			DrawRectangleLinesEx(_transform, 3, hover() ? GRAY : BLACK);
 		}
-
-		bool hover() const { return _prev_state == ButtonState::Hover; }
 	};
 
 	enum class InputBoxState { None, Hover, Focussed, FocussedHover };
 
 	/* non growing input box */
 	class StaticInputBox : 
-		public UIElement
+		public IClickable
 	{
 	protected:
 		Font _font{};
 		std::string _buffer{};
-		InputBoxState _state{ InputBoxState::None };
 		float _fontsize{};
 		bool _full{ false };
+		bool _focussed{ false };
 
 		void pop_back()
 		{
@@ -215,16 +237,12 @@ namespace suite::ui
 			{
 				while (key > 0)
 				{
-					/* only allowing keys in range 32 ... 125 */
-					//if ((key >= 32) && (key <= 125))
-					//{
-						_buffer.push_back(key);
-						if (validate_text_size())
-						{
-							pop_back();
-							break;
-						}
-					// }
+					_buffer.push_back(key);
+					if (validate_text_size())
+					{
+						pop_back();
+						break;
+					}
 					/* get next key in queue */
 					key = GetCharPressed();
 				}
@@ -235,23 +253,6 @@ namespace suite::ui
 				pop_back();
 				_full = false; /* we removed something so it cant be full */
 			}
-		}
-
-		void set_input_state(Vector2 m)
-		{
-			bool is_hover = helpers::rectangle_v_point(_transform, m);
-			bool clicked = IsMouseButtonPressed(MouseButton::MOUSE_LEFT_BUTTON);
-			bool is_clicked = is_hover && clicked;
-			/* make sure to redo the hover check otherwise hover stays forever */
-			_state = focussed() ? InputBoxState::Focussed : InputBoxState::None;
-
-			if (is_clicked) 
-				_state = InputBoxState::Focussed;
-
-			if (is_hover) /* if hover and was focussed set both else just hover */
-				_state = _state == InputBoxState::Focussed ? InputBoxState::FocussedHover : InputBoxState::Hover;
-			else if (clicked) /* if clicked but not on inputbox, turn off */
-				_state = InputBoxState::None;
 		}
 
 		/* @brief sets _full to true if text size too large and returns true */
@@ -274,21 +275,25 @@ namespace suite::ui
 		}
 	public:
 		StaticInputBox(Rectangle transform, float fontsize, Font font = GetFontDefault())
-			: UIElement(transform)
+			: IClickable(transform)
 			, _fontsize(fontsize)
 			, _font(font)
 		{}
 
 		void update(Vector2 m) override
 		{
-			set_input_state(m);
+			handle_state(m);
+
+			/* if clicked anywhere else turn off focus, else turn it on */
+			if (IsMouseButtonPressed(MouseButton::MOUSE_LEFT_BUTTON))
+				_focussed = leftclicked();
 
 			if (focussed())
 			{
 				handle_key_input();
 			}
 
-			if (hovered())
+			if (hover())
 			{
 				SetMouseCursor(MOUSE_CURSOR_IBEAM);
 			}
@@ -301,7 +306,7 @@ namespace suite::ui
 
 		void on_draw() const override
 		{
-			DrawRectangleLinesEx(_transform, 4, hovered() ? GRAY : BLACK);
+			DrawRectangleLinesEx(_transform, 4, hover() ? GRAY : BLACK);
 			const Vector2 text_size = empty() ? Vector2{ 0.f, _fontsize } : measure_text();
 			
 			if (!empty())
@@ -320,8 +325,7 @@ namespace suite::ui
 		size_t size() const { return _buffer.size(); }
 		bool empty() const { return size() == 0; }
 		bool full() const { return _full; }
-		bool focussed() const { return _state == InputBoxState::Focussed || _state == InputBoxState::FocussedHover; }
-		bool hovered() const { return _state == InputBoxState::Hover || _state == InputBoxState::FocussedHover; }
+		bool focussed() const { return _focussed; }
 		Vector2 measure_text() const { return MeasureTextEx(_font, _buffer.c_str(), _fontsize, _fontsize / 10.f); }
 
 		std::string_view buffer() const { return _buffer; }
