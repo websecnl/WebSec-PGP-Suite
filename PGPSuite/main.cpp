@@ -5,14 +5,14 @@
 #include <sstream>
 #include <vector>
 
+/* win */
+
 /* rnp */
 #define RNP_NO_DEPRECATED
 #include <rnp/rnp.h>
 
 /* local */
 #include "rnp_wrappers.h"
-
-constexpr int RNP_SUCCESS{ 0 };
 
 /* (NOTES)
 * 
@@ -301,10 +301,11 @@ int main()
     //  else 
     //     std::cout << "Encrypted input\n";
     
-    if (!decrypt_text("secring.pgp"))
+    /*if (!decrypt_text("secring.pgp"))
         std::cerr << "Problem decrypting data\n";
     else
-        std::cout << "Decrypted data\n";
+        std::cout << "Decrypted data\n";*/
+
 
     return 0;
 }
