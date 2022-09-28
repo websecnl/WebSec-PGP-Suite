@@ -137,7 +137,7 @@ bool cin_pass_provider( rnp_ffi_t           ffi,
     }
 */
 
-bool generate_keys(std::string public_keyring = "secring.pgp", std::string secret_keyring = "secring.pgp")
+bool generate_keys(std::string public_keyring = "pubring.pgp", std::string secret_keyring = "secring.pgp")
 {
     rnp::FFI ffi("GPG", "GPG"); /* The context rnp works in */
     rnp::Output output; /* Stores where to output keys */
@@ -305,7 +305,6 @@ int main()
         std::cerr << "Problem decrypting data\n";
     else
         std::cout << "Decrypted data\n";*/
-
 
     return 0;
 }
