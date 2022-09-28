@@ -1,11 +1,11 @@
+#include "PGPSuiteApplication.h"
+
 /* std */
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <vector>
-
-/* win */
 
 /* rnp */
 #define RNP_NO_DEPRECATED
@@ -284,27 +284,31 @@ std::string read_file(const std::string& filename)
     return buffer_stream.str();
 }
 
-int main()
-{
-    /*std::string filename;
-    std::getline(std::cin, filename);
+wxIMPLEMENT_APP(suite::MyApp);
 
-    std::cout << read_file(filename);*/
-
-    // if (!generate_keys("other_pubring.pgp", "other_secring.pgp"))
-    // {
-    //     std::cerr << "Problem generating keys\n";
-    // }
-    // 
-    // if (!encrypt_text(prompt_input("Text to encrypt: ")))
-    //     std::cerr << "Problem encrypting text\n";
-    //  else 
-    //     std::cout << "Encrypted input\n";
-    
-    /*if (!decrypt_text("secring.pgp"))
-        std::cerr << "Problem decrypting data\n";
-    else
-        std::cout << "Decrypted data\n";*/
-
-    return 0;
-}
+//int main()
+//{
+//    /*std::string filename;
+//    std::getline(std::cin, filename);
+//
+//    std::cout << read_file(filename);*/
+//
+//    // if (!generate_keys("other_pubring.pgp", "other_secring.pgp"))
+//    // {
+//    //     std::cerr << "Problem generating keys\n";
+//    // }
+//    // 
+//    // if (!encrypt_text(prompt_input("Text to encrypt: ")))
+//    //     std::cerr << "Problem encrypting text\n";
+//    //  else 
+//    //     std::cout << "Encrypted input\n";
+//    
+//    /*if (!decrypt_text("secring.pgp"))
+//        std::cerr << "Problem decrypting data\n";
+//    else
+//        std::cout << "Decrypted data\n";*/
+//
+//    
+//
+//    return 0;
+//}
