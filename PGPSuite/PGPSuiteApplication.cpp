@@ -48,7 +48,10 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
     auto buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     panelMainSizer->Add(buttonSizer);
 
-    auto saveButton = new wxButton(panel, ID_SAVE_FILE, _("Encrypt"));
+    // auto saveButton = new wxButton(panel, ID_SAVE_FILE, _("Encrypt"));
+    // buttonSizer->Add(saveButton);
+
+    auto saveButton = new wxButton(panel, ID_ENCRYPT_FILE, _("Encrypt"));
     buttonSizer->Add(saveButton);
 
     return panel;
@@ -218,7 +221,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                         return true;
                     }
                     
-                    wxTextEntryDialog dialog(nullptr, _("This password will be to protect your secret king"), _("Please enter a password"), wxEmptyString, wxOK | wxCANCEL); 
+                    wxTextEntryDialog dialog(nullptr, _("This password will be to protect your secret key"), _("Please enter a password"), wxEmptyString, wxOK | wxCANCEL); 
             
                     if (dialog.ShowModal() != wxID_OK)
                     {
@@ -245,5 +248,45 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 wxMessageBox(_("Failed!"), _("Keypair generation failed."));
 
         }, ID_GENERATE_KEY, ID_GENERATE_KEY);
+
+    Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
+        {
+            auto pubkey = _input_fields["Recipient public key"]->GetValue();
+            auto file = _input_fields["File to encrypt"]->GetValue();
+            
+            if (pubkey.size() <= 0 || file.size() <= 0)
+            {
+                wxMessageBox(_("Fill in all boxes"), _("Encryption failed"));
+                return;
+            }
+
+            std::string filename = std::string(file.mb_str()), filedata{};
+
+            try
+            {
+                filedata = io::read_file(filename, true);
+            }
+            catch (std::exception& e)
+            {
+                wxMessageBox(_("Could not open file: ") + file, _("Could not open file"));
+                return;
+            }
+
+            wxFileDialog fileDialog(this, _("Save encrypted data to"), "", "", "*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+            if (fileDialog.ShowModal() == wxID_CANCEL)
+            {
+                wxMessageBox(_("No file selected to save data to"), _("Encryption failed"));
+                return;
+            }
+
+            const auto success = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size(), std::string(pubkey.mb_str()), "rsa@key", std::string(fileDialog.GetPath().mb_str()));
+
+            if (success)
+                wxMessageBox(_("Successfully encrypted data."), _("Success!"));
+            else
+                wxMessageBox(_("Encryption failed."), _("Failed!"));
+
+        }, ID_ENCRYPT_FILE, ID_ENCRYPT_FILE);
 }
 

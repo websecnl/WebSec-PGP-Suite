@@ -17,6 +17,7 @@
 
 #include <unordered_map>
 
+#include "PGPEncrypt.h"
 #include "PGPGenerateKeys.h"
 
 namespace suite
@@ -28,6 +29,7 @@ namespace suite
         ID_PICK_PUBKEY_FILE,
         ID_SAVE_FILE,
         ID_GENERATE_KEY,
+        ID_ENCRYPT_FILE,
     };
 
     class MyFrame : public wxFrame
