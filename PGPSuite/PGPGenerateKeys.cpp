@@ -31,7 +31,7 @@ bool pgp::generic_cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle
     return input.size() > 0;
 }
 
-bool pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::string key_data)
+bool pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::string key_data, rnp_password_cb passprovider)
 {
     rnp::FFI ffi("GPG", "GPG");
     rnp::Output output; /* where to save the keys */
@@ -51,7 +51,7 @@ bool pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::s
     }
 
     /* have to make proper pass provider for here */
-    rnp_ffi_set_pass_provider(ffi, generic_cin_pass_provider, nullptr);
+    rnp_ffi_set_pass_provider(ffi, passprovider, nullptr);
 
     if (auto err = rnp_generate_key_json(ffi, json_data.c_str(), &key_grips.buffer);
         err != RNP_SUCCESS)
