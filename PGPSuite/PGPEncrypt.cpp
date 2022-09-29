@@ -1,6 +1,6 @@
 #include "PGPEncrypt.h"
 
-bool pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std::string save_to, bool add_password)
+bool pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std::string userid, std::string save_to, bool add_password)
 {
     rnp::Input input_message;
     rnp::Output output_message;
@@ -40,7 +40,7 @@ bool pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std:
         op.set_password(io::prompt_input("Password: ").c_str(), RNP_ALGNAME_SHA256, 0, RNP_ALGNAME_AES_256);
 
     /* Locate key using the userid and load it into the key_handle_t */
-    if (rnp_locate_key(ffi, "userid", "rsa@key", &key) != RNP_SUCCESS)
+    if (rnp_locate_key(ffi, "userid", userid.c_str(), &key) != RNP_SUCCESS)
     {
         std::cerr << "failed to locate recipient key rsa@key\n";
         return false;
