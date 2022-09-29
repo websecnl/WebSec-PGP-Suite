@@ -18,7 +18,11 @@ namespace pgp
 	/* @brief Generate a keyring with settings from a json file
 	@param pubkey_file: filename for public keyring
 	@param secret_file: filename for secret keyring
-	@param key_data: filename for json file holding keydata */
-	bool generate_keys(std::string pubkey_file = "pubring.pgp", std::string secret_file = "secring.pgp", std::string key_data = "keygen.json");
+	@param key_data: filename for json file holding keydata 
+	@param passprovider: password provider to be used by the ffi context */
+	bool generate_keys(std::string pubkey_file = "pubring.pgp", 
+		std::string secret_file = "secring.pgp", 
+		std::string key_data = "keygen.json", 
+		rnp_password_cb passprovider = generic_cin_pass_provider);
 }
 
