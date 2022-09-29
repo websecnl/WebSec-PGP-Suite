@@ -13,18 +13,21 @@
 #include <wx/artprov.h>
 #include <wx/wfstream.h>
 #include <wx/simplebook.h>
+#include <wx/textdlg.h>
 
 #include <unordered_map>
+
+#include "PGPGenerateKeys.h"
 
 namespace suite
 {
     enum
     {
         ID_Hello = wxID_HIGHEST + 1,
-        ID_My_Man,
         ID_PICK_FILE_TO_ENCRYPT,
         ID_PICK_PUBKEY_FILE,
         ID_SAVE_FILE,
+        ID_GENERATE_KEY,
     };
 
     class MyFrame : public wxFrame

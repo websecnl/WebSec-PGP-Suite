@@ -70,7 +70,7 @@ wxPanel* MyFrame::create_generate_page(wxBookCtrlBase* parent)
     inputSizer->Add(keyText);
     inputSizer->Add(keyInput);
 
-    auto button = new wxButton(panel, wxID_ANY, _("Generate"));
+    auto button = new wxButton(panel, ID_GENERATE_KEY, _("Generate"));
     panelMainSizer->Add(button);
 
     return panel;
@@ -145,12 +145,6 @@ wxMenuBar* MyFrame::create_menu_bar()
 
 void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 {
-    Bind(wxEVT_TOOL, [notebook](wxCommandEvent&)
-        {
-            int cur_idx = notebook->GetSelection();
-            notebook->SetSelection(!cur_idx);
-        }, ID_My_Man, ID_My_Man);
-
     /* save to file */
     Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
         {
@@ -203,4 +197,53 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 
             input->SetValue(openFileDialog.GetPath());
         }, ID_PICK_PUBKEY_FILE, ID_PICK_PUBKEY_FILE);
+
+    Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
+        {
+            // auto input = _input_fields["Recipient public key"];
+            // for now lets ignore the user input
+
+            const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", "keygen.json", [](rnp_ffi_t           ffi,
+                void* app_ctx,
+                rnp_key_handle_t    key,
+                const char* pgp_context,
+                char                buf[],
+                size_t              buf_len) -> bool
+                {
+                    static bool skip_next_call{ false }; /* next call will be to unlock the already unlocked key so we skip it */
+
+                    if (skip_next_call)
+                    {/* if user generates another key we dont wanna skip that */
+                        skip_next_call = false;
+                        return true;
+                    }
+                    
+                    wxTextEntryDialog dialog(nullptr, _("This password will be to protect your secret king"), _("Please enter a password"), wxEmptyString, wxOK | wxCANCEL); 
+            
+                    if (dialog.ShowModal() != wxID_OK)
+                    {
+                        wxMessageBox(_("Key generation halted"), _("Cancelled"));
+                        return false;
+                    }               
+
+                    wxString input = dialog.GetValue();
+                
+                    auto end = input.end();
+                    if (input.size() > buf_len) 
+                        end = input.begin() + (buf_len - 1); 
+
+                    std::copy(input.begin(), end, buf);
+
+                    skip_next_call = true;
+
+                    return input.size() > 0;
+                    });
+            
+            if (success)
+                wxMessageBox(_("Success!"), _("Successfully generated keypair!"));
+            else
+                wxMessageBox(_("Failed!"), _("Keypair generation failed."));
+
+        }, ID_GENERATE_KEY, ID_GENERATE_KEY);
 }
+
