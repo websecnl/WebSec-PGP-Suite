@@ -18,10 +18,24 @@
 
 namespace suite
 {
+    enum
+    {
+        ID_Hello = wxID_HIGHEST + 1,
+        ID_My_Man,
+        ID_PICK_FILE_TO_ENCRYPT,
+        ID_PICK_PUBKEY_FILE,
+        ID_SAVE_FILE,
+    };
+
     class MyApp : public wxApp
     {
     public:
-        virtual bool OnInit();
+        virtual bool OnInit()
+        {
+            MyFrame* frame = new MyFrame();
+            frame->Show(true);
+            return true;
+        }
     };
 
     class MyFrame : public wxFrame
@@ -41,60 +55,42 @@ namespace suite
         /* i prefer linking them at runtime, because lambda's */
         void runtime_bind_events(wxBookCtrlBase* notebook);
     public:
-        MyFrame();
+        MyFrame()
+            : wxFrame(NULL, wxID_ANY, "Hello World")
+        {
+            auto menuBar = create_menu_bar();
+
+            SetMenuBar(menuBar);
+
+            wxNotebook* notebook = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxSize(400, 300));
+
+            auto mainSizer = new wxBoxSizer(wxVERTICAL);
+
+            auto encryptPanel = create_encryption_page(notebook);
+            auto decryptPanel = create_decrypt_page(notebook);
+            auto generatePanel = create_generate_page(notebook);
+
+            notebook->AddPage(generatePanel, _("Generate"));
+            notebook->AddPage(encryptPanel, _("Encrypt"));
+            notebook->AddPage(decryptPanel, _("Decrypt"));
+            notebook->Layout();
+
+            notebook->SetSelection(2);
+
+            mainSizer->Add(notebook, 1, wxEXPAND);
+
+            SetSizer(mainSizer);
+
+            mainSizer->Fit(this);
+
+            CreateStatusBar();
+            SetStatusText("Ready...");
+
+            runtime_bind_events(notebook);
+        }
     private:
         void OnExit(wxCommandEvent& event);
     };
-
-    enum
-    {
-        ID_Hello = wxID_HIGHEST + 1,
-        ID_My_Man,
-        ID_PICK_FILE_TO_ENCRYPT,
-        ID_PICK_PUBKEY_FILE,
-        ID_SAVE_FILE,
-    };
-
-    bool MyApp::OnInit()
-    {
-        MyFrame* frame = new MyFrame();
-        frame->Show(true);
-        return true;
-    }  
-
-    MyFrame::MyFrame()
-        : wxFrame(NULL, wxID_ANY, "Hello World")
-    {
-        auto menuBar = create_menu_bar();
-
-        SetMenuBar(menuBar);
-
-        wxNotebook* notebook = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxSize(400, 300));
-
-        auto mainSizer = new wxBoxSizer(wxVERTICAL);
-
-        auto encryptPanel = create_encryption_page(notebook);
-        auto decryptPanel = create_decrypt_page(notebook);
-        auto generatePanel = create_generate_page(notebook);
-
-        notebook->AddPage(generatePanel, _("Generate"));
-        notebook->AddPage(encryptPanel, _("Encrypt"));
-        notebook->AddPage(decryptPanel, _("Decrypt"));
-        notebook->Layout();
-
-        notebook->SetSelection(2);
-
-        mainSizer->Add(notebook, 1, wxEXPAND);
-
-        SetSizer(mainSizer);
-
-        mainSizer->Fit(this);
-
-        CreateStatusBar();
-        SetStatusText("Ready...");
-
-        runtime_bind_events(notebook);
-    }
 
     inline void MyFrame::OnExit(wxCommandEvent& event)
     {
