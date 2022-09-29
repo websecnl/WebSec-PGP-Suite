@@ -27,17 +27,6 @@ namespace suite
         ID_SAVE_FILE,
     };
 
-    class MyApp : public wxApp
-    {
-    public:
-        virtual bool OnInit()
-        {
-            MyFrame* frame = new MyFrame();
-            frame->Show(true);
-            return true;
-        }
-    };
-
     class MyFrame : public wxFrame
     {
     protected:
@@ -96,4 +85,15 @@ namespace suite
     {
         Close(true);
     }
+
+    class MyApp : public wxApp
+    {
+    public:
+        virtual bool OnInit()
+        {
+            MyFrame* frame = new MyFrame();
+            frame->Show(true);
+            return true;
+        }
+    };
 }
