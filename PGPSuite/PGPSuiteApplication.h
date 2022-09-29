@@ -96,7 +96,7 @@ namespace suite
         runtime_bind_events(notebook);
     }
 
-    void MyFrame::OnExit(wxCommandEvent& event)
+    inline void MyFrame::OnExit(wxCommandEvent& event)
     {
         Close(true);
     }
