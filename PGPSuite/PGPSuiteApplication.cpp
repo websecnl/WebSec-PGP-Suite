@@ -148,11 +148,11 @@ wxMenuBar* MyFrame::create_menu_bar()
 
 void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 {
-    auto bind_button_filediag = [this](const char* key)
+    auto bind_button_filediag = [this](const char* key, const char* wildcard = "All files | *")
     {
         auto input = _input_fields[key];
         
-        wxFileDialog openFileDialog(this, _("Open file"), "", "", "*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        wxFileDialog openFileDialog(this, _("Open file"), "", "", _(wildcard), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
         if (openFileDialog.ShowModal() == wxID_CANCEL)
             return;
@@ -162,11 +162,11 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 
     Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "File to encrypt"), ID_OPEN_FILE, ID_OPEN_FILE);
 
-    Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "Recipient public key"), ID_OPEN_PUBKEY, ID_OPEN_PUBKEY);
+    Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "Recipient public key", "PGP file (*.pgp)|*.pgp| All files|*"), ID_OPEN_PUBKEY, ID_OPEN_PUBKEY);
 
-    Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "Private key"), ID_OPEN_SECKEY, ID_OPEN_SECKEY);
+    Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "Private key", "PGP file (*.pgp)|*.pgp|All files|*"), ID_OPEN_SECKEY, ID_OPEN_SECKEY);
     
-    Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "File to decrypt"), ID_OPEN_ENC_FILE, ID_OPEN_ENC_FILE);
+    Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "File to decrypt", "ASC file (*.asc)|*.asc|All files|*"), ID_OPEN_ENC_FILE, ID_OPEN_ENC_FILE);
     /*
     * ("decrypt (symmetric)") ||
         pgp_context == std::string("decrypt"))  
@@ -201,6 +201,11 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             // auto input = _input_fields["Recipient public key"];
             // for now lets ignore the user input
             
+            /*
+            * save dialog "pubring.pgp" as default and showing ".pgp" files
+            * save dialog "secring.pgp" as default and showing ".pgp" files
+            */
+            PushStatusText(_("Generating..."));
             const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", "keygen.json", [](rnp_ffi_t           ffi,
                 void* app_ctx,
                 rnp_key_handle_t    key,
@@ -236,7 +241,8 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 
                     return input.size() > 0;
                     });
-            
+            PopStatusText();
+
             if (success)
                 wxMessageBox(_("Success!"), _("Successfully generated keypair!"));
             else
@@ -270,7 +276,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            wxFileDialog fileDialog(this, _("Save encrypted data to"), "", "", "*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+            wxFileDialog fileDialog(this, _("Save encrypted data to"), "", _("message"), "ASC files(*.asc) | *.asc | All files | *", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
             if (fileDialog.ShowModal() == wxID_CANCEL)
             {
@@ -312,7 +318,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            wxFileDialog fileDialog(this, _("Save decrypted data to"), "", "", "*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+            wxFileDialog fileDialog(this, _("Save decrypted data to"), "", _("message"), "All files|*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
             if (fileDialog.ShowModal() == wxID_CANCEL)
             {
