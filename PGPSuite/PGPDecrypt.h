@@ -20,6 +20,7 @@ namespace pgp
     @param secring_file: Filename of secret keyring
     @param encrypted_file: Filename with encrypted file
     @param output_fname: Filename of the decrypted data,
-    if empty, name will be same as encrypted file minus .asc */
-    bool decrypt_text(std::string secring_file = "secring.pgp", std::string encrypted_file = "message.asc", std::string output_fname = "");
+    if empty, name will be same as encrypted file minus .asc
+    @param passprovider: function pointer to a password provider */
+    bool decrypt_text(std::string secring_file = "secring.pgp", std::string encrypted_file = "message.asc", std::string output_fname = "", rnp_password_cb passprovider = cin_pass_provider);
 }

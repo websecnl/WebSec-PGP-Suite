@@ -19,7 +19,7 @@ bool pgp::cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle_t key, 
     return input.size() > 0;
 }
 
-bool pgp::decrypt_text(std::string secring_file, std::string encrypted_file, std::string output_fname)
+bool pgp::decrypt_text(std::string secring_file, std::string encrypted_file, std::string output_fname, rnp_password_cb passprovider)
 {
     rnp::FFI ffi("GPG", "GPG");
     rnp::Input keyfile;
@@ -42,7 +42,7 @@ bool pgp::decrypt_text(std::string secring_file, std::string encrypted_file, std
     }
     keyfile.destroy();
 
-    rnp_ffi_set_pass_provider(ffi, cin_pass_provider, NULL);
+    rnp_ffi_set_pass_provider(ffi, passprovider, NULL);
 
     /* create file input and memory output objects for the encrypted message and decrypted
      * message */
