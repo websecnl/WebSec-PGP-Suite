@@ -32,11 +32,14 @@ namespace suite
         ID_OPEN_SECKEY,
         ID_OPEN_ENC_FILE,
         ID_OPEN_FILE,
-        ID_SAVE_FILE,
         
+        /* actions */
         ID_GENERATE_KEY,
         ID_ENCRYPT_FILE,
         ID_DECRYPT_FILE,
+
+        /* unused */
+        ID_SAVE_FILE,
     };
 
     class MyFrame : public wxFrame
