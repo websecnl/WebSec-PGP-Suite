@@ -42,7 +42,7 @@ bool pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std:
     /* Locate key using the userid and load it into the key_handle_t */
     if (rnp_locate_key(ffi, "userid", userid.c_str(), &key) != RNP_SUCCESS)
     {
-        std::cerr << "failed to locate recipient key rsa@key\n";
+        std::cerr << "failed to locate recipient key: " << userid << '\n';
         return false;
     }
 
