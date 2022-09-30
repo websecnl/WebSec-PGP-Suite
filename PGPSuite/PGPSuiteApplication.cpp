@@ -11,7 +11,7 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
 
     /* set names */
     for (auto flags = wxEXPAND | wxALL;
-        auto str : { "File to encrypt", "Recipient public key" })
+        auto str : { "File to encrypt", "KeyID of recipient", "Recipient public key" })
     {
         auto nameSizer = new wxBoxSizer(wxHORIZONTAL);
         panelMainSizer->Add(nameSizer, 1, flags, 15);
@@ -167,7 +167,35 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
     Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "Private key"), ID_OPEN_SECKEY, ID_OPEN_SECKEY);
     
     Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "File to decrypt"), ID_OPEN_ENC_FILE, ID_OPEN_ENC_FILE);
-        
+    /*
+    * ("decrypt (symmetric)") ||
+        pgp_context == std::string("decrypt"))  
+    */
+    auto passprovider = [](rnp_ffi_t ffi, void* app_ctx, rnp_key_handle_t key, const char* pgp_context, char buf[], size_t buf_len) -> bool
+    {
+        // if (pgp_context == _("decrypt (symmetric)"))
+        /* change prompt if asked for key pass or for file pass */
+        wxString prompt = _("Please enter a password");
+
+        wxTextEntryDialog dialog(nullptr, wxEmptyString, prompt, wxEmptyString, wxOK | wxCANCEL);
+
+        if (dialog.ShowModal() != wxID_OK)
+        {
+            wxMessageBox(_("Operation halted"), _("Cancelled"));
+            return false;
+        }
+
+        wxString input = dialog.GetValue();
+
+        auto end = input.end();
+        if (input.size() > buf_len)
+            end = input.begin() + (buf_len - 1);
+
+        std::copy(input.begin(), end, buf);
+
+        return input.size() > 0;
+    };
+
     Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
         {
             // auto input = _input_fields["Recipient public key"];
@@ -188,13 +216,13 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                         return true;
                     }
                     
-                    wxTextEntryDialog dialog(nullptr, _("This password will be to protect your secret key"), _("Please enter a password"), wxEmptyString, wxOK | wxCANCEL); 
+                    wxTextEntryDialog dialog(nullptr, _("This password will be to protect your secret key\n"), _("Please enter a password"), wxEmptyString, wxOK | wxCANCEL);
             
                     if (dialog.ShowModal() != wxID_OK)
                     {
                         wxMessageBox(_("Key generation halted"), _("Cancelled"));
                         return false;
-                    }               
+                    }
 
                     wxString input = dialog.GetValue();
                 
@@ -216,10 +244,13 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 
         }, ID_GENERATE_KEY, ID_GENERATE_KEY);
 
+    /* ------------------------------------- ENCRYPT ---------------------------------------------- */
+
     Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
         {
             auto pubkey = _input_fields["Recipient public key"]->GetValue();
             auto file = _input_fields["File to encrypt"]->GetValue();
+            auto keyID = _input_fields["KeyID of recipient"]->GetValue();
             
             if (pubkey.size() <= 0 || file.size() <= 0)
             {
@@ -247,7 +278,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            const auto success = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size(), std::string(pubkey.mb_str()), "rsa@key", std::string(fileDialog.GetPath().mb_str()));
+            const auto success = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size(), std::string(pubkey.mb_str()), std::string(keyID.mb_str()), std::string(fileDialog.GetPath().mb_str()));
 
             if (success)
                 wxMessageBox(_("Successfully encrypted data."), _("Success!"));
@@ -256,7 +287,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 
         }, ID_ENCRYPT_FILE, ID_ENCRYPT_FILE);
 
-    /* DECRYPT */
+    /* ------------------------------------- DECRYPT ---------------------------------------------- */
 
     Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
         {
