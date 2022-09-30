@@ -19,17 +19,24 @@
 
 #include "PGPEncrypt.h"
 #include "PGPGenerateKeys.h"
+#include "PGPDecrypt.h"
 
 namespace suite
 {
     enum
     {
         ID_Hello = wxID_HIGHEST + 1,
-        ID_PICK_FILE_TO_ENCRYPT,
-        ID_PICK_PUBKEY_FILE,
+
+        /* id's to link button to input field */
+        ID_OPEN_PUBKEY,
+        ID_OPEN_SECKEY,
+        ID_OPEN_ENC_FILE,
+        ID_OPEN_FILE,
         ID_SAVE_FILE,
+        
         ID_GENERATE_KEY,
         ID_ENCRYPT_FILE,
+        ID_DECRYPT_FILE,
     };
 
     class MyFrame : public wxFrame
@@ -50,7 +57,7 @@ namespace suite
         void runtime_bind_events(wxBookCtrlBase* notebook);
     public:
         MyFrame()
-            : wxFrame(NULL, wxID_ANY, "Hello World")
+            : wxFrame(NULL, wxID_ANY, "PGPSuite")
         {
             auto menuBar = create_menu_bar();
 
