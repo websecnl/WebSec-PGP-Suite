@@ -4,7 +4,7 @@ bool pgp::cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle_t key, 
 {
     std::string input{};
     if (pgp_context == std::string("decrypt (symmetric)") ||
-        pgp_context == std::string("decrypt"))
+        pgp_context == std::string("decrypt"))  
         input = io::prompt_input(pgp_context, ": ");
 
     auto end = input.end();
@@ -19,7 +19,7 @@ bool pgp::cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle_t key, 
     return input.size() > 0;
 }
 
-bool pgp::decrypt_text(std::string secring_file, std::string encrypted_file, std::string output_fname, rnp_password_cb passprovider)
+pgp::OpRes pgp::decrypt_text(std::string secring_file, std::string encrypted_file, std::string output_fname, rnp_password_cb passprovider)
 {
     rnp::FFI ffi("GPG", "GPG");
     rnp::Input keyfile;
@@ -37,8 +37,7 @@ bool pgp::decrypt_text(std::string secring_file, std::string encrypted_file, std
     /* we may use RNP_LOAD_SAVE_SECRET_KEYS | RNP_LOAD_SAVE_PUBLIC_KEYS as well*/
     if (rnp_load_keys(ffi, "GPG", keyfile, RNP_LOAD_SAVE_SECRET_KEYS) != RNP_SUCCESS)
     {
-        std::cout << "failed to read secring.pgp\n";
-        return false;
+        return "Failed to read secring.pgp\n";
     }
     keyfile.destroy();
 
@@ -46,15 +45,14 @@ bool pgp::decrypt_text(std::string secring_file, std::string encrypted_file, std
 
     /* create file input and memory output objects for the encrypted message and decrypted
      * message */
-    if (input.set_input_from_path(std::forward<std::string>(encrypted_file)) != RNP_SUCCESS) return false;
+    if (input.set_input_from_path(std::forward<std::string>(encrypted_file)) != RNP_SUCCESS) return "Error setting input\n";
 
-    if (output.set_output_to_path(std::forward<std::string>(output_fname)) != RNP_SUCCESS) return false;
+    if (output.set_output_to_path(std::forward<std::string>(output_fname)) != RNP_SUCCESS) return "Error setting output\n";
 
     /* input: where is the encrypted data
        output: where to save the decrypted data */
     if (rnp_decrypt(ffi, input, output) != RNP_SUCCESS) {
-        std::cerr << "public-key decryption failed\n";
-        return false;
+        return "Decryption failed\n";
     }
 
     return true;
