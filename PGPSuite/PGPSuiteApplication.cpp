@@ -10,11 +10,13 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
     panel->SetSizer(panelMainSizer);
 
     /* set names */
-    for (auto flags = wxEXPAND | wxALL;
+    for (auto flags = wxEXPAND | wxALL ^ wxBOTTOM;
         auto str : { "File to encrypt", "KeyID of recipient", "Recipient public key" })
     {
+        auto mainInputSizer = new wxBoxSizer(wxVERTICAL);
         auto nameSizer = new wxBoxSizer(wxHORIZONTAL);
-        panelMainSizer->Add(nameSizer, 1, flags, 15);
+        mainInputSizer->Add(nameSizer, 1, flags, 15);
+        panelMainSizer->Add(mainInputSizer, 1, flags, 15);
 
         auto name = new wxTextCtrl(panel, wxID_ANY);
         auto nameText = new wxStaticText(panel, wxID_ANY, _(str));
@@ -25,8 +27,33 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
         switch (str[0])
         {
         case 'F':
+        {
             pickFile = new wxButton(panel, ID_OPEN_FILE, _("File..."));
+            name->SetExtraStyle(wxTE_MULTILINE);
+            name->SetWindowStyle(wxTE_MULTILINE);
+            name->SetWindowStyleFlag(wxTE_MULTILINE);
+
+            wxArrayString choices;
+            choices.Add("File");
+            choices.Add("Text");
+
+            auto* radiobox = new wxRadioBox(panel, ID_ENC_TYPE_RADIO_CHANGED, wxEmptyString, wxDefaultPosition, wxDefaultSize, choices);
+            mainInputSizer->Add(radiobox, 0, wxALIGN_RIGHT);
+            
+            Bind(wxEVT_RADIOBOX, [pickFile, radiobox, name](wxCommandEvent& e)
+                {
+                    auto selection = radiobox->GetString(e.GetSelection());
+                    
+                    if (selection == _("File"))
+                        pickFile->SetId(ID_OPEN_FILE);
+                    else
+                        pickFile->SetId(ID_EDIT_TEXT);
+
+                    pickFile->SetLabelText(selection + _("..."));
+
+                }, ID_ENC_TYPE_RADIO_CHANGED, ID_ENC_TYPE_RADIO_CHANGED);
             break;
+        }
         case 'R':
             pickFile = new wxButton(panel, ID_OPEN_PUBKEY, _("File..."));
             break;
@@ -84,7 +111,7 @@ wxPanel* MyFrame::create_decrypt_page(wxBookCtrlBase* parent)
     panel->SetSizer(panelMainSizer);
 
     /* set names */
-    for (auto flags = wxEXPAND | wxALL;
+    for (auto flags = wxEXPAND | wxALL ^ wxBOTTOM;
         auto str : { "File to decrypt", "Private key" })
     {
         auto nameSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -127,18 +154,18 @@ wxPanel* MyFrame::create_decrypt_page(wxBookCtrlBase* parent)
 
 wxMenuBar* MyFrame::create_menu_bar()
 {
-    wxMenu* menuFile = new wxMenu;
-    menuFile->Append(ID_Hello, "&Hello...\tCtrl-H",
+    wxMenu* menu_file = new wxMenu;
+    menu_file->Append(ID_Hello, "&Hello...\tCtrl-H",
         "Help string shown in status bar for this menu item");
-    menuFile->AppendSeparator();
-    menuFile->Append(wxID_EXIT);
+    menu_file->AppendSeparator();
+    menu_file->Append(wxID_EXIT);
 
-    wxMenu* menuHelp = new wxMenu;
-    menuHelp->Append(wxID_ABOUT);
+    wxMenu* menu_help = new wxMenu;
+    menu_help->Append(wxID_ABOUT);
 
     wxMenuBar* menuBar = new wxMenuBar;
-    menuBar->Append(menuFile, "&File");
-    menuBar->Append(menuHelp, "&Help");
+    menuBar->Append(menu_file, "&File");
+    menuBar->Append(menu_help, "&Help");
 
     return menuBar;
 }
@@ -265,7 +292,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         }, ID_ENCRYPT_FILE, ID_ENCRYPT_FILE);
 
     /* ------------------------------------- DECRYPT ---------------------------------------------- */
-
+    
     Bind(wxEVT_BUTTON, [this, passprovider, all_filled](wxCommandEvent& e)
         {
             auto seckey = _input_fields["Private key"]->GetValue();
@@ -304,5 +331,22 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             else
                 wxMessageBox(_(success.what()), _("Failed!"));
         }, ID_DECRYPT_FILE, ID_DECRYPT_FILE);
+    
+    /* ------------------------------------- TEXT EDIT ---------------------------------------------- */
+
+    Bind(wxEVT_BUTTON, [this, passprovider, all_filled](wxCommandEvent& e)
+        {
+            auto input = _input_fields["File to encrypt"];
+            
+            auto text_dialog = suite::TextEditDiag(this, wxID_ANY, _("Text editor"));
+            if (text_dialog.ShowModal() == wxID_OK)
+            {
+                input->SetValue(text_dialog.get_value());
+                auto txt = text_dialog.get_value();
+                auto c_txt = input->GetValue();
+                return;
+            }
+
+        }, ID_EDIT_TEXT, ID_EDIT_TEXT);
 }
 

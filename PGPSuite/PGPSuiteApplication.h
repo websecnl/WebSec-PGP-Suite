@@ -14,12 +14,14 @@
 #include <wx/wfstream.h>
 #include <wx/simplebook.h>
 #include <wx/textdlg.h>
+#include <wx/radiobox.h>
 
 #include <unordered_map>
 
 #include "PGPEncrypt.h"
 #include "PGPGenerateKeys.h"
 #include "PGPDecrypt.h"
+#include "TextEditDiag.h"
 
 namespace suite
 {
@@ -32,11 +34,13 @@ namespace suite
         ID_OPEN_SECKEY,
         ID_OPEN_ENC_FILE,
         ID_OPEN_FILE,
+        ID_EDIT_TEXT,
         
         /* actions */
         ID_GENERATE_KEY,
         ID_ENCRYPT_FILE,
         ID_DECRYPT_FILE,
+        ID_ENC_TYPE_RADIO_CHANGED,
 
         /* unused */
         ID_SAVE_FILE,
