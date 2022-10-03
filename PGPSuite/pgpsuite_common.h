@@ -23,6 +23,10 @@ namespace pgp
 		OpRes(std::string&& what)
 			: _what(what)
 		{}
+		/* @brief Constructs result with a custom message of what went wrong */
+		OpRes(const char* what)
+			: _what(what)
+		{}
 
 		operator bool() const { return !error(); }
 		bool error() const { return !_what.empty(); }
