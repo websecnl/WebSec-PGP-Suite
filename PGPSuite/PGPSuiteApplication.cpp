@@ -48,9 +48,6 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
     auto buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     panelMainSizer->Add(buttonSizer);
 
-    // auto saveButton = new wxButton(panel, ID_SAVE_FILE, _("Encrypt"));
-    // buttonSizer->Add(saveButton);
-
     auto saveButton = new wxButton(panel, ID_ENCRYPT_FILE, _("Encrypt"));
     buttonSizer->Add(saveButton);
 
@@ -174,13 +171,13 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         /* change prompt if asked for key pass or for file pass */
         wxString prompt = _("Please enter a password"), prompt_desc{};
         
-        if (strcmp(pgp_context, "protect"))
+        if (strcmp(pgp_context, "protect") == 0)
             prompt_desc = _("Provide a password to encrypt secret key\n");
-        else if (strcmp(pgp_context, "unprotect"))
+        else if (strcmp(pgp_context, "unprotect") == 0)
             prompt_desc = _("Provide password to decrypt secret key\n");
-        else if (strcmp(pgp_context, "decrypt (symmetric)"))
+        else if (strcmp(pgp_context, "decrypt (symmetric)") == 0)
             prompt_desc = _("Provide password of the encrypted message\n");
-        else if (strcmp(pgp_context, "decrypt"))
+        else if (strcmp(pgp_context, "decrypt") == 0)
             prompt_desc = _("Provide secret key password to decrypt the data\n");
         else
             prompt_desc = _("Unknown password acquisition found: '") + _(pgp_context) + _("'.\nPlease inform developer.\n");
@@ -210,7 +207,6 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
     /* ------------------------------------- GENERATE ---------------------------------------------- */
 
     // (TODO) generate save as dialogues for saving pubring and secring
-    // (TODO) set proper error handling with OpRes
     Bind(wxEVT_BUTTON, [this, passprovider](wxCommandEvent& e)
         {
             PushStatusText(_("Generating..."));
