@@ -213,8 +213,6 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
     // (TODO) set proper error handling with OpRes
     Bind(wxEVT_BUTTON, [this, passprovider](wxCommandEvent& e)
         {
-            // auto input = _input_fields["Recipient public key"];
-            // for now lets ignore the user input
             PushStatusText(_("Generating..."));
             
             const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", "keygen.json", passprovider);
@@ -268,7 +266,6 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 wxMessageBox(_("Successfully encrypted data."), _("Success!"));
             else
                 wxMessageBox(_(success.what()), _("Failed!"));
-
         }, ID_ENCRYPT_FILE, ID_ENCRYPT_FILE);
 
     /* ------------------------------------- DECRYPT ---------------------------------------------- */
@@ -310,7 +307,6 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 wxMessageBox(_("Successfully decrypted data."), _("Success!"));
             else
                 wxMessageBox(_(success.what()), _("Failed!"));
-
         }, ID_DECRYPT_FILE, ID_DECRYPT_FILE);
 }
 

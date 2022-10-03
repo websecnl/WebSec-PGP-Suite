@@ -31,7 +31,7 @@ bool pgp::generic_cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle
     return input.size() > 0;
 }
 
-bool pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::string key_data, rnp_password_cb passprovider)
+pgp::OpRes pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::string key_data, rnp_password_cb passprovider)
 {
     rnp::FFI ffi("GPG", "GPG");
     rnp::Output output; /* where to save the keys */
@@ -45,9 +45,7 @@ bool pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::s
     }
     catch (std::exception& e)
     {
-        std::cerr << e.what();
-        std::cerr << "\nDid you spell '" << key_data << "' correctly?\n";
-        return false;
+        return std::string(e.what()) + "\nDid you spell '" + key_data + "' correctly?\n";
     }
 
     /* have to make proper pass provider for here */
@@ -56,28 +54,24 @@ bool pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::s
     if (auto err = rnp_generate_key_json(ffi, json_data.c_str(), &key_grips.buffer);
         err != RNP_SUCCESS)
     {
-        std::cerr << "Failed to generate key from json\n";
-        std::cerr << "Error code: " << err << '\n';
-        return false;
+        return "Failed to generate key from json\n";
     }
 
     std::cout << "Json result: " << key_grips << '\n';
     key_grips.destroy();
 
-    if (output.set_output_to_path(std::forward<std::string>(pubkey_file)) != RNP_SUCCESS) return false;
+    if (output.set_output_to_path(std::forward<std::string>(pubkey_file)) != RNP_SUCCESS) return "Failed to set output.";
 
     if (rnp_save_keys(ffi, "GPG", output, RNP_LOAD_SAVE_PUBLIC_KEYS) != RNP_SUCCESS)
     {
-        std::cerr << "Failed to save keys\n";
-        return false;
+        return "Failed to save keys\n";
     }
 
-    if (output.set_output_to_path(std::forward<std::string>(secret_file)) != RNP_SUCCESS) return false;
+    if (output.set_output_to_path(std::forward<std::string>(secret_file)) != RNP_SUCCESS) return "Failed to set output.";
 
     if (rnp_save_keys(ffi, "GPG", output, RNP_LOAD_SAVE_SECRET_KEYS) != RNP_SUCCESS)
     {
-        std::cerr << "Failed to save keys\n";
-        return false;
+        return "Failed to save keys\n";
     }
 
     return true;
