@@ -200,18 +200,10 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         {
             // auto input = _input_fields["Recipient public key"];
             // for now lets ignore the user input
-            
-            /*
-            * save dialog "pubring.pgp" as default and showing ".pgp" files
-            * save dialog "secring.pgp" as default and showing ".pgp" files
-            */
             PushStatusText(_("Generating..."));
-            const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", "keygen.json", [](rnp_ffi_t           ffi,
-                void* app_ctx,
-                rnp_key_handle_t    key,
-                const char* pgp_context,
-                char                buf[],
-                size_t              buf_len) -> bool
+            
+            const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", "keygen.json", 
+                [](rnp_ffi_t, void*, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len) -> bool
                 {
                     static bool skip_next_call{ false }; /* next call will be to unlock the already unlocked key so we skip it */
 
@@ -289,7 +281,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             if (success)
                 wxMessageBox(_("Successfully encrypted data."), _("Success!"));
             else
-                wxMessageBox(_("Encryption failed."), _("Failed!"));
+                wxMessageBox(_(success.what()), _("Failed!"));
 
         }, ID_ENCRYPT_FILE, ID_ENCRYPT_FILE);
 
@@ -326,12 +318,8 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            const auto success = pgp::decrypt_text(std::string(seckey.mb_str()), std::string(file.mb_str()), "", [](rnp_ffi_t           ffi,
-                void* app_ctx,
-                rnp_key_handle_t    key,
-                const char* pgp_context,
-                char                buf[],
-                size_t              buf_len) -> bool
+            const auto success = pgp::decrypt_text(std::string(seckey.mb_str()), std::string(file.mb_str()), "", 
+                [](rnp_ffi_t, void*, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len) -> bool
                 {
                     wxTextEntryDialog dialog(nullptr, wxEmptyString, _("Please enter a password"), wxEmptyString, wxOK | wxCANCEL);
 
@@ -355,7 +343,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             if (success)
                 wxMessageBox(_("Successfully decrypted data."), _("Success!"));
             else
-                wxMessageBox(_("Decryption failed."), _("Failed!"));
+                wxMessageBox(_(success.what()), _("Failed!"));
 
         }, ID_DECRYPT_FILE, ID_DECRYPT_FILE);
 }
