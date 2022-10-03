@@ -167,11 +167,8 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
     Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "Private key", "PGP file (*.pgp)|*.pgp|All files|*"), ID_OPEN_SECKEY, ID_OPEN_SECKEY);
     
     Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "File to decrypt", "ASC file (*.asc)|*.asc|All files|*"), ID_OPEN_ENC_FILE, ID_OPEN_ENC_FILE);
-    /*
-    * ("decrypt (symmetric)") ||
-        pgp_context == std::string("decrypt"))  
-        "protect", "unprotect"
-    */
+    
+    /* Generic passprovider to be send to the different operations, will generate appropriate prompts */
     auto passprovider = [](rnp_ffi_t, void*, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len) -> bool
     {
         /* change prompt if asked for key pass or for file pass */
@@ -185,6 +182,8 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             prompt_desc = _("Provide password of the encrypted message\n");
         else if (strcmp(pgp_context, "decrypt"))
             prompt_desc = _("Provide secret key password to decrypt the data\n");
+        else
+            prompt_desc = _("Unknown password acquisition found: '") + _(pgp_context) + _("'.\nPlease inform developer.\n");
 
         wxTextEntryDialog dialog(nullptr, prompt_desc, prompt, wxEmptyString, wxOK | wxCANCEL);
 
@@ -204,6 +203,9 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 
         return input.size() > 0;
     };
+
+    /* simple lambda to check if all parameters have a size of member that returns a number greater than 0 */
+    auto all_filled = [](auto ... params) -> bool { return ((params.size() > 0) && ...); };
 
     /* ------------------------------------- GENERATE ---------------------------------------------- */
 
@@ -228,13 +230,13 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 
     /* ------------------------------------- ENCRYPT ---------------------------------------------- */
     
-    Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
+    Bind(wxEVT_BUTTON, [this, all_filled](wxCommandEvent& e)
         {
             auto pubkey = _input_fields["Recipient public key"]->GetValue();
             auto file = _input_fields["File to encrypt"]->GetValue();
             auto keyID = _input_fields["KeyID of recipient"]->GetValue();
             
-            if (pubkey.size() <= 0 || file.size() <= 0)
+            if (!all_filled(pubkey, file, keyID))
             {
                 wxMessageBox(_("Fill in all boxes"), _("Encryption failed"));
                 return;
@@ -270,13 +272,13 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         }, ID_ENCRYPT_FILE, ID_ENCRYPT_FILE);
 
     /* ------------------------------------- DECRYPT ---------------------------------------------- */
-    // (TODO) generic function to check if all boxes filled in
-    Bind(wxEVT_BUTTON, [this, passprovider](wxCommandEvent& e)
+
+    Bind(wxEVT_BUTTON, [this, passprovider, all_filled](wxCommandEvent& e)
         {
             auto seckey = _input_fields["Private key"]->GetValue();
             auto file = _input_fields["File to decrypt"]->GetValue();
 
-            if (seckey.size() <= 0 || file.size() <= 0)
+            if (!all_filled(seckey, file))
             {
                 wxMessageBox(_("Fill in all boxes"), _("Decryption failed"));
                 return;
