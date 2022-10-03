@@ -47,12 +47,16 @@ pgp::OpRes pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file
     /* Recipient public key, the public keys encrypt the data so
     that the recipient can decrypt it using their secret key
     thats why we say we add the public key of the recipient */
-    if (op.add_recipient(key) != RNP_SUCCESS) return false;
+    if (op.add_recipient(key) != RNP_SUCCESS)
+    {
+        return "Failed to locate recipient key: " + userid;
+    }
 
     rnp_key_handle_destroy(key);
     key = nullptr;
 
-    if (op.execute() != RNP_SUCCESS) return false;
+    if (op.execute() != RNP_SUCCESS) 
+        return "Failed to encrypt.\n";
 
     return true;
 }
