@@ -51,7 +51,8 @@ pgp::OpRes pgp::decrypt_text(std::string secring_file, std::string encrypted_fil
 
     /* input: where is the encrypted data
        output: where to save the decrypted data */
-    if (rnp_decrypt(ffi, input, output) != RNP_SUCCESS) {
+    if (rnp_decrypt(ffi, input, output) != RNP_SUCCESS) 
+    {
         return "Decryption failed\n";
     }
 
