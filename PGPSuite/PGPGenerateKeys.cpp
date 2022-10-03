@@ -45,7 +45,7 @@ pgp::OpRes pgp::generate_keys(std::string pubkey_file, std::string secret_file, 
     }
     catch (std::exception& e)
     {
-        return std::string(e.what()) + "\nDid you spell '" + key_data + "' correctly?\n";
+        return std::string(e.what()) + "\n'" + key_data + "' was not found.\n";
     }
 
     /* have to make proper pass provider for here */
@@ -57,7 +57,7 @@ pgp::OpRes pgp::generate_keys(std::string pubkey_file, std::string secret_file, 
         return "Failed to generate key from json\n";
     }
 
-    std::cout << "Json result: " << key_grips << '\n';
+    // std::cout << "Json result: " << key_grips << '\n';
     key_grips.destroy();
 
     if (output.set_output_to_path(std::forward<std::string>(pubkey_file)) != RNP_SUCCESS) return "Failed to set output.";
