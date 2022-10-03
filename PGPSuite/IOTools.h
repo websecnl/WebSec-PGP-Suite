@@ -13,7 +13,7 @@ namespace io
         inline void validate_file(_FStream& file)
         {
             if (file.fail())
-                throw std::exception("File does not exist");
+                throw std::exception("File does not exist.");
         }
 
         template<class _Str, class _FStream, class _SStream>
