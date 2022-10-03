@@ -148,7 +148,7 @@ wxMenuBar* MyFrame::create_menu_bar()
 
 void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 {
-    auto bind_button_filediag = [this](const char* key, const char* wildcard = "All files | *")
+    auto bind_button_filediag = [this](const char* key, const char* wildcard = "All files|*")
     {
         auto input = _input_fields[key];
         
@@ -170,14 +170,23 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
     /*
     * ("decrypt (symmetric)") ||
         pgp_context == std::string("decrypt"))  
+        "protect", "unprotect"
     */
-    auto passprovider = [](rnp_ffi_t ffi, void* app_ctx, rnp_key_handle_t key, const char* pgp_context, char buf[], size_t buf_len) -> bool
+    auto passprovider = [](rnp_ffi_t, void*, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len) -> bool
     {
-        // if (pgp_context == _("decrypt (symmetric)"))
         /* change prompt if asked for key pass or for file pass */
-        wxString prompt = _("Please enter a password");
+        wxString prompt = _("Please enter a password"), prompt_desc{};
+        
+        if (strcmp(pgp_context, "protect"))
+            prompt_desc = _("Provide a password to encrypt secret key\n");
+        else if (strcmp(pgp_context, "unprotect"))
+            prompt_desc = _("Provide password to decrypt secret key\n");
+        else if (strcmp(pgp_context, "decrypt (symmetric)"))
+            prompt_desc = _("Provide password of the encrypted message\n");
+        else if (strcmp(pgp_context, "decrypt"))
+            prompt_desc = _("Provide secret key password to decrypt the data\n");
 
-        wxTextEntryDialog dialog(nullptr, wxEmptyString, prompt, wxEmptyString, wxOK | wxCANCEL);
+        wxTextEntryDialog dialog(nullptr, prompt_desc, prompt, wxEmptyString, wxOK | wxCANCEL);
 
         if (dialog.ShowModal() != wxID_OK)
         {
@@ -196,43 +205,18 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         return input.size() > 0;
     };
 
-    Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
+    /* ------------------------------------- GENERATE ---------------------------------------------- */
+
+    // (TODO) generate save as dialogues for saving pubring and secring
+    // (TODO) set proper error handling with OpRes
+    Bind(wxEVT_BUTTON, [this, passprovider](wxCommandEvent& e)
         {
             // auto input = _input_fields["Recipient public key"];
             // for now lets ignore the user input
             PushStatusText(_("Generating..."));
             
-            const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", "keygen.json", 
-                [](rnp_ffi_t, void*, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len) -> bool
-                {
-                    static bool skip_next_call{ false }; /* next call will be to unlock the already unlocked key so we skip it */
-
-                    if (skip_next_call)
-                    {/* if user generates another key we dont wanna skip that */
-                        skip_next_call = false;
-                        return true;
-                    }
-                    
-                    wxTextEntryDialog dialog(nullptr, _("This password will be to protect your secret key\n"), _("Please enter a password"), wxEmptyString, wxOK | wxCANCEL);
+            const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", "keygen.json", passprovider);
             
-                    if (dialog.ShowModal() != wxID_OK)
-                    {
-                        wxMessageBox(_("Key generation halted"), _("Cancelled"));
-                        return false;
-                    }
-
-                    wxString input = dialog.GetValue();
-                
-                    auto end = input.end();
-                    if (input.size() > buf_len) 
-                        end = input.begin() + (buf_len - 1); 
-
-                    std::copy(input.begin(), end, buf);
-
-                    skip_next_call = true;
-
-                    return input.size() > 0;
-                    });
             PopStatusText();
 
             if (success)
@@ -243,7 +227,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         }, ID_GENERATE_KEY, ID_GENERATE_KEY);
 
     /* ------------------------------------- ENCRYPT ---------------------------------------------- */
-
+    
     Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
         {
             auto pubkey = _input_fields["Recipient public key"]->GetValue();
@@ -286,8 +270,8 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         }, ID_ENCRYPT_FILE, ID_ENCRYPT_FILE);
 
     /* ------------------------------------- DECRYPT ---------------------------------------------- */
-
-    Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
+    // (TODO) generic function to check if all boxes filled in
+    Bind(wxEVT_BUTTON, [this, passprovider](wxCommandEvent& e)
         {
             auto seckey = _input_fields["Private key"]->GetValue();
             auto file = _input_fields["File to decrypt"]->GetValue();
@@ -318,27 +302,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            const auto success = pgp::decrypt_text(std::string(seckey.mb_str()), std::string(file.mb_str()), "", 
-                [](rnp_ffi_t, void*, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len) -> bool
-                {
-                    wxTextEntryDialog dialog(nullptr, wxEmptyString, _("Please enter a password"), wxEmptyString, wxOK | wxCANCEL);
-
-                    if (dialog.ShowModal() != wxID_OK)
-                    {
-                        wxMessageBox(_("Decryption halted"), _("Cancelled"));
-                        return false;
-                    }
-
-                    wxString input = dialog.GetValue();
-
-                    auto end = input.end();
-                    if (input.size() > buf_len)
-                        end = input.begin() + (buf_len - 1);
-
-                    std::copy(input.begin(), end, buf);
-
-                    return input.size() > 0;
-                });
+            const auto success = pgp::decrypt_text(std::string(seckey.mb_str()), std::string(file.mb_str()), "", passprovider);
 
             if (success)
                 wxMessageBox(_("Successfully decrypted data."), _("Success!"));
