@@ -1,6 +1,6 @@
 #include "PGPEncrypt.h"
 
-bool pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std::string userid, std::string save_to, bool add_password)
+pgp::OpRes pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std::string userid, std::string save_to, bool add_password)
 {
     rnp::Input input_message;
     rnp::Output output_message;
@@ -23,8 +23,7 @@ bool pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std:
     /* Attempt to read pubring.pgp for its keys */
     if (rnp_load_keys(ffi, "GPG", input_key, RNP_LOAD_SAVE_PUBLIC_KEYS) != RNP_SUCCESS)
     {
-        std::cerr << "Failed to read pubring.pgp\n";
-        return false;
+        return "Failed to read pubring.pgp\n";
     }
 
     /* Set encryption parameters */
@@ -42,8 +41,7 @@ bool pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std:
     /* Locate key using the userid and load it into the key_handle_t */
     if (rnp_locate_key(ffi, "userid", userid.c_str(), &key) != RNP_SUCCESS)
     {
-        std::cerr << "failed to locate recipient key: " << userid << '\n';
-        return false;
+        return "Failed to locate recipient key: " + userid;
     }
 
     /* Recipient public key, the public keys encrypt the data so
