@@ -31,35 +31,26 @@ bool pgp::generic_cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle
     return input.size() > 0;
 }
 
-pgp::OpRes pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::string key_data, rnp_password_cb passprovider)
+pgp::OpRes pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::string key_settings, rnp_password_cb passprovider)
 {
     rnp::FFI ffi("GPG", "GPG");
     rnp::Output output; /* where to save the keys */
     rnp::Buffer<char> key_grips; /* JSON result buffer */
-    std::string json_data{};
 
-    if (auto res = pgp::utils::validate_strings<std::string>(pubkey_file, secret_file, key_data); !res) return res;
+    if (auto res = pgp::utils::validate_strings<std::string>(pubkey_file, secret_file); !res) return res;
 
-    try
-    {
-        /* file has to exist, else just exit */
-        json_data = io::read_file(key_data, true);
-    }
-    catch (std::exception& e)
-    {
-        return std::string(e.what()) + "\n'" + key_data + "' was not found.\n";
-    }
-
-    /* have to make proper pass provider for here */
+    /* Have to make proper pass provider for here */
     rnp_ffi_set_pass_provider(ffi, passprovider, nullptr);
 
-    if (auto err = rnp_generate_key_json(ffi, json_data.c_str(), &key_grips.buffer);
+    /* Check this first to be able to provide the user with a more clear error message */
+    if (!pgp::utils::all_ascii(key_settings)) return "Non-ascii characters in JSON data.\n";
+
+    if (auto err = rnp_generate_key_json(ffi, key_settings.c_str(), &key_grips.buffer);
         err != RNP_SUCCESS)
     {
-        return "Failed to generate key from json\n";
+        return "Failed to generate key from json.\n";
     }
 
-    // std::cout << "Json result: " << key_grips << '\n';
     key_grips.destroy();
 
     if (output.set_output_to_path(std::forward<std::string>(pubkey_file)) != RNP_SUCCESS) return "Failed to set output.";
