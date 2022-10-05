@@ -8,6 +8,7 @@
 
 namespace suite
 {
+    /* meant as a modal dialogue to display a notepad like text editor */
     class TextEditDiag :
         public wxDialog
     {
