@@ -27,8 +27,7 @@ namespace suite
 {
     /* Embedded json settings */
     inline static const char* json_data = 
-R"(
-{
+R"({
     'primary': {
         'type': 'RSA',
         'length': 2048,
