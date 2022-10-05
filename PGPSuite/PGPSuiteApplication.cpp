@@ -98,13 +98,18 @@ wxPanel* MyFrame::create_generate_page(wxBookCtrlBase* parent)
     panelMainSizer->Add(inputSizer, 1, wxEXPAND | wxALL, 15);
 
     auto keyText = new wxStaticText(panel, wxID_ANY, _("Key ID"));
-    auto keyInput = new wxTextCtrl(panel, wxID_ANY);
+    auto keyInput = new wxTextCtrl(panel, wxID_ANY, _("user@id"));
     keyText->SetMinSize(wxSize(125, keyText->GetMinSize().y));
     inputSizer->Add(keyText);
     inputSizer->Add(keyInput);
 
+    auto button_sizer = new wxBoxSizer(wxHORIZONTAL);
+    panelMainSizer->Add(button_sizer);
+
     auto button = new wxButton(panel, ID_GENERATE_KEY, _("Generate"));
-    panelMainSizer->Add(button);
+    auto advanced_button = new wxButton(panel, ID_SHOW_GENERATE_SETTINGS, _("Advanced..."));
+    button_sizer->Add(button);
+    button_sizer->Add(advanced_button);
 
     return panel;
 }
@@ -244,7 +249,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         {
             PushStatusText(_("Generating..."));
             
-            const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", "keygen.json", passprovider);
+            const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", _json_data, passprovider);
             
             PopStatusText();
 
@@ -306,7 +311,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         }, ID_ENCRYPT_FILE, ID_ENCRYPT_FILE);
 
     /* ------------------------------------- DECRYPT ---------------------------------------------- */
-    
+    /* (TODO) accept wstrings as filenames by opening the file and loading it into memory and then decrypting that */
     Bind(wxEVT_BUTTON, [this, passprovider, all_filled](wxCommandEvent& e)
         {
             auto seckey = _input_fields["Private key"]->GetValue();
@@ -362,5 +367,19 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             }
 
         }, ID_EDIT_TEXT, ID_EDIT_TEXT);
+
+
+    Bind(wxEVT_BUTTON, [this](wxCommandEvent& e)
+        {
+            TextEditDiag diag(this, wxID_ANY, _("Advanced settings"));
+            diag.set_value(_json_data);
+
+            if (diag.ShowModal() == wxID_OK)
+            {
+                _json_data = diag.get_value();
+                return;
+            }
+
+        }, ID_SHOW_GENERATE_SETTINGS, ID_SHOW_GENERATE_SETTINGS);
 }
 
