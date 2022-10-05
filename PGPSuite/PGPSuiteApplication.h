@@ -26,7 +26,7 @@
 namespace suite
 {
     /* Embedded json settings */
-    const char* json_data = 
+    inline static const char* json_data = 
 R"(
 {
     'primary': {
