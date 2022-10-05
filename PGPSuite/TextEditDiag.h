@@ -43,6 +43,11 @@ namespace suite
             text_control->Clear();
         }
 
+        void set_value(const wxString& val)
+        {
+            text_control->SetValue(val);
+        }
+
         wxString get_value() const
         {
             return text_control->GetValue();
