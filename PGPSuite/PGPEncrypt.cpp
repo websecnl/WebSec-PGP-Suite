@@ -9,14 +9,16 @@ pgp::OpRes pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file
     rnp::Input input_key;
     rnp::FFI ffi("GPG", "GPG");
 
+    if (auto res = pgp::utils::validate_strings<std::string>(pubkey_file, userid, save_to); !res) return res;
+
     /* Load key file */ /* should in the future allow for adding multiple keys */
-    if (input_key.set_input_from_path(std::forward<std::string>(pubkey_file)) != RNP_SUCCESS) return false;
+    if (input_key.set_input_from_path(std::forward<std::string>(pubkey_file)) != RNP_SUCCESS) return "Failed setting input\n";
 
     /* Load the to be encrypted message */
-    if (input_message.set_input_from_memory(data, size, false) != RNP_SUCCESS) return false;
+    if (input_message.set_input_from_memory(data, size, false) != RNP_SUCCESS) return "Failed setting input from memory\n";
 
     /* Prepare the output for the encrypted message */
-    if (output_message.set_output_to_path(std::forward<std::string>(save_to)) != RNP_SUCCESS) return false;
+    if (output_message.set_output_to_path(std::forward<std::string>(save_to)) != RNP_SUCCESS) return "Failed setting output\n";
 
     rnp::EncryptOperation op(ffi, input_message, output_message);
 

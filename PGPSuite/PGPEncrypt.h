@@ -3,6 +3,7 @@
 #include "pgpsuite_common.h"
 #include "rnp_wrappers.h"
 #include "IOTools.h"
+#include "Utils.h"
 
 namespace pgp
 {

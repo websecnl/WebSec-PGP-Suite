@@ -4,6 +4,7 @@
 #include "IOTools.h"
 #include <rnp\rnp.h>
 #include "rnp_wrappers.h"
+#include "Utils.h"
 
 namespace pgp
 {

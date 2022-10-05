@@ -27,6 +27,8 @@ pgp::OpRes pgp::decrypt_text(std::string secring_file, std::string encrypted_fil
     rnp::Output output;
     std::vector<uint8_t> buffer;
 
+    if (auto res = pgp::utils::validate_strings<std::string>(secring_file, encrypted_file, output_fname); !res) return res;
+
     if (output_fname.size() == 0)
         output_fname = utils::remove_extension(encrypted_file);
 

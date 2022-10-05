@@ -38,6 +38,8 @@ pgp::OpRes pgp::generate_keys(std::string pubkey_file, std::string secret_file, 
     rnp::Buffer<char> key_grips; /* JSON result buffer */
     std::string json_data{};
 
+    if (auto res = pgp::utils::validate_strings<std::string>(pubkey_file, secret_file, key_data); !res) return res;
+
     try
     {
         /* file has to exist, else just exit */
