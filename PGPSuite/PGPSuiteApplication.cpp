@@ -40,14 +40,20 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
             auto* radiobox = new wxRadioBox(panel, ID_ENC_TYPE_RADIO_CHANGED, wxEmptyString, wxDefaultPosition, wxDefaultSize, choices);
             mainInputSizer->Add(radiobox, 0, wxALIGN_RIGHT);
             
-            Bind(wxEVT_RADIOBOX, [pickFile, radiobox, name](wxCommandEvent& e)
+            Bind(wxEVT_RADIOBOX, [this, pickFile, radiobox, name](wxCommandEvent& e)
                 {
                     auto selection = radiobox->GetString(e.GetSelection());
                     
                     if (selection == _("File"))
+                    {
                         pickFile->SetId(ID_OPEN_FILE);
+                        _enc_mode = EncMode::File;
+                    }
                     else
+                    {
                         pickFile->SetId(ID_EDIT_TEXT);
+                        _enc_mode = EncMode::Text;
+                    }
 
                     pickFile->SetLabelText(selection + _("..."));
 
@@ -254,27 +260,34 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
     Bind(wxEVT_BUTTON, [this, all_filled](wxCommandEvent& e)
         {
             auto pubkey = _input_fields["Recipient public key"]->GetValue();
-            auto file = _input_fields["File to encrypt"]->GetValue();
+            auto data = _input_fields["File to encrypt"]->GetValue();
             auto keyID = _input_fields["KeyID of recipient"]->GetValue();
             
-            if (!all_filled(pubkey, file, keyID))
+            if (!all_filled(pubkey, data, keyID))
             {
                 wxMessageBox(_("Fill in all boxes"), _("Encryption failed"));
                 return;
             }
 
-            std::string filename = std::string(file.mb_str()), filedata{};
+            std::wstring filename = std::wstring(data.wc_str()), filedata{};
 
-            try
-            {
-                filedata = io::read_file(filename, true);
+            if (_enc_mode == EncMode::File)
+            { /* data is to be interpreted as file */
+                try
+                {
+                    filedata = io::read_file(filename, true);
+                }
+                catch (std::exception& e)
+                {
+                    wxMessageBox(_("Could not open file: ") + data, _("Could not open file"));
+                    return;
+                }
             }
-            catch (std::exception& e)
-            {
-                wxMessageBox(_("Could not open file: ") + file, _("Could not open file"));
-                return;
+            else if (_enc_mode == EncMode::Text)
+            { /* data is to be interpreted as string */
+                filedata = std::wstring(data.wc_str());
             }
-
+            
             wxFileDialog fileDialog(this, _("Save encrypted data to"), "", _("message"), "ASC files(*.asc) | *.asc | All files | *", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
             if (fileDialog.ShowModal() == wxID_CANCEL)
@@ -283,7 +296,8 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            const auto success = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size(), std::string(pubkey.mb_str()), std::string(keyID.mb_str()), std::string(fileDialog.GetPath().mb_str()));
+            const auto success = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size() * (sizeof(wchar_t) / sizeof(uint8_t)), std::string(pubkey.mb_str()), std::string(keyID.mb_str()), std::string(fileDialog.GetPath().mb_str()));
+            // const auto success = pgp::encrypt_text((uint8_t*)data.wc_str(), data.size() * 2, std::string(pubkey.mb_str()), std::string(keyID.mb_str()), std::string(fileDialog.GetPath().mb_str()));
 
             if (success)
                 wxMessageBox(_("Successfully encrypted data."), _("Success!"));

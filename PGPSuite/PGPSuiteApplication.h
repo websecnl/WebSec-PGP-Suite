@@ -46,6 +46,11 @@ namespace suite
         ID_SAVE_FILE,
     };
 
+    /* Encryption mode 
+        - File mode reads file and encrypts content
+        - Text mode encrypts the given data */
+    enum class EncMode { File, Text };
+
     class MyFrame : public wxFrame
     {
     protected:
@@ -53,6 +58,7 @@ namespace suite
         using TextFieldMap = std::unordered_map<const char*, wxTextCtrl*>;
 
         TextFieldMap _input_fields;
+        EncMode _enc_mode{ EncMode::File };
 
         wxPanel* create_encryption_page(wxBookCtrlBase* parent);
         wxPanel* create_generate_page(wxBookCtrlBase* parent);
