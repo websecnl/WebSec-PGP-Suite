@@ -23,7 +23,7 @@ namespace pgp
 	@param passprovider: password provider to be used by the ffi context */
 	pgp::OpRes generate_keys(std::string pubkey_file = "pubring.pgp", 
 		std::string secret_file = "secring.pgp", 
-		std::string key_data = "keygen.json", 
+		std::string_view key_data = "keygen.json", 
 		rnp_password_cb passprovider = generic_cin_pass_provider);
 }
 

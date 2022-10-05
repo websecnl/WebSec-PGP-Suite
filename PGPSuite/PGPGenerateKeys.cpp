@@ -31,7 +31,7 @@ bool pgp::generic_cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle
     return input.size() > 0;
 }
 
-pgp::OpRes pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::string key_settings, rnp_password_cb passprovider)
+pgp::OpRes pgp::generate_keys(std::string pubkey_file, std::string secret_file, std::string_view key_settings, rnp_password_cb passprovider)
 {
     rnp::FFI ffi("GPG", "GPG");
     rnp::Output output; /* where to save the keys */
@@ -45,7 +45,7 @@ pgp::OpRes pgp::generate_keys(std::string pubkey_file, std::string secret_file, 
     /* Check this first to be able to provide the user with a more clear error message */
     if (!pgp::utils::all_ascii(key_settings)) return "Non-ascii characters in JSON data.\n";
 
-    if (auto err = rnp_generate_key_json(ffi, key_settings.c_str(), &key_grips.buffer);
+    if (auto err = rnp_generate_key_json(ffi, key_settings.data(), &key_grips.buffer);
         err != RNP_SUCCESS)
     {
         return "Failed to generate key from json.\n";
