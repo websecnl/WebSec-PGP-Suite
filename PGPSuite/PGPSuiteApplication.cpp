@@ -99,6 +99,7 @@ wxPanel* MyFrame::create_generate_page(wxBookCtrlBase* parent)
 
     auto keyText = new wxStaticText(panel, wxID_ANY, _("Key ID"));
     auto keyInput = new wxTextCtrl(panel, wxID_ANY, _("user@id"));
+    keyInput->Disable();
     keyText->SetMinSize(wxSize(125, keyText->GetMinSize().y));
     inputSizer->Add(keyText);
     inputSizer->Add(keyInput);
