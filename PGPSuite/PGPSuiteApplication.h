@@ -25,6 +25,34 @@
 
 namespace suite
 {
+    /* Embedded json settings */
+    const char* json_data = 
+R"(
+{
+    'primary': {
+        'type': 'RSA',
+        'length': 2048,
+        'userid': 'user@id',
+        'expiration': 31536000,
+        'usage': ['sign'],
+        'protection': {
+            'cipher': 'AES256',
+            'hash': 'SHA256'
+        }
+    },
+    'sub': {
+        'type': 'RSA',
+        'length': 2048,
+        'expiration': 15768000,
+        'usage': ['encrypt'],
+        'protection': {
+            'cipher': 'AES256',
+            'hash': 'SHA256'
+        }
+    }
+}
+)";
+
     enum
     {
         ID_Hello = wxID_HIGHEST + 1,
@@ -41,6 +69,7 @@ namespace suite
         ID_ENCRYPT_FILE,
         ID_DECRYPT_FILE,
         ID_ENC_TYPE_RADIO_CHANGED,
+        ID_SHOW_GENERATE_SETTINGS,
 
         /* unused */
         ID_SAVE_FILE,
@@ -59,6 +88,7 @@ namespace suite
 
         TextFieldMap _input_fields;
         EncMode _enc_mode{ EncMode::File };
+        std::string _json_data = json_data;
 
         wxPanel* create_encryption_page(wxBookCtrlBase* parent);
         wxPanel* create_generate_page(wxBookCtrlBase* parent);
