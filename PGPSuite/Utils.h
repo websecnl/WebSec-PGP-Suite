@@ -45,9 +45,16 @@ namespace pgp::utils
 
     /* Check if the given string contains only ascii characters */
     template<class _String> inline
-        bool all_ascii(const _String& str)
+    bool all_ascii(const _String& str)
     {
         return std::all_of(str.begin(), str.end(), isascii);
+    }
+
+    /* Applies a function to a determined list of variables */
+    template<typename _Pred, typename ... _Args>
+    bool are_all(_Pred pred, _Args&&... args)
+    {
+        return ( ( pred(std::forward<_Args>(args) ) ) && ...);
     }
 }
 
