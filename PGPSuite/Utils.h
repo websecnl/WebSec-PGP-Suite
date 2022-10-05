@@ -42,5 +42,12 @@ namespace pgp::utils
 
         return std::string(str.begin(), itr);
     }
+
+    /* Check if the given string contains only ascii characters */
+    template<class _String> inline
+        bool all_ascii(const _String& str)
+    {
+        return std::all_of(str.begin(), str.end(), isascii);
+    }
 }
 
