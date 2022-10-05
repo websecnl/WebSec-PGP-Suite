@@ -3,6 +3,7 @@
 #include <string>
 #include <algorithm>
 #include <Windows.h>
+#include <optional>
 
 namespace pgp::utils
 {
@@ -55,6 +56,27 @@ namespace pgp::utils
     bool are_all(_Pred pred, _Args&&... args)
     {
         return ( ( pred(std::forward<_Args>(args) ) ) && ...);
+    }   
+
+    /* Find first element in init list that when passed to pred returns False */
+    template<typename _Type, typename _Pred> inline
+    std::optional<_Type> find_if_not(std::initializer_list<_Type> types, _Pred pred)
+    {
+        auto found = std::find_if_not(types.begin(), types.end(), pred);
+        return found == types.end() ? std::optional<_Type>{} : std::optional<_Type>(*found);
+    }
+
+    /* Checks if the given strings are in ascii and returns an error if one is not
+    @note Will make a copy of the strings when an invalid one is found */
+    template<class _String, typename ... _Args>
+    OpRes validate_strings(_Args&&... strings)
+    {
+        if (!are_all(all_ascii<_String>, std::forward<_Args&&>(strings)... ))
+        {
+            auto invalid_type = find_if_not({ strings... }, all_ascii<_String>);
+            return "Non valid characters detected in:\n" + *invalid_type + "\nMake sure all characters are ascii.";
+        }
+        return true;
     }
 }
 
