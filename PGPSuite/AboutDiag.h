@@ -6,28 +6,38 @@
 #include <wx/wx.h>
 #endif
 
+#include "versioning.h"
+
+#include <unordered_map>
+
 namespace suite
 {
-    inline static const char* _about_text =
-R"(Address:
-WebSec B.V.
-Keurenplein 41 A6260
-1069 CD Amsterdam
-
-Email: contact@websec.nl
-Tel: 085-0023061
-
-Application Info
-Developer: Koen
-Version: v1.0
-Status: Latest Version
-)";
+    inline static std::unordered_map<wxString, wxString> about_info
+    {
+        {_("Address"), _("WebSec B.V.\nKeurenplein 41 A6260\n1069 CD Amsterdam")},
+        {_("Contact"), _("\n")},
+        {_("Email"), _("contact@websec.nl")},
+        {_("Tel"), _("085 - 0023061")},
+        {_("Application Info"), _("\n")},
+        {_("Developer"), _("Koen Blok")},
+        {_("Version"), ver::get_local_version() },
+        {_("Status"), _("Not checked")},
+    };
 
     class AboutDiag :
         public wxDialog
     {
     protected:
         wxTextCtrl* text_control{ nullptr };
+        wxString about_text;       
+
+        void parse(const std::unordered_map<wxString, wxString>& info)
+        {
+            for (const auto& [key, val] : info)
+            {
+                about_text += key + _(": ") + val + _("\n");
+            }
+        }
     public:
         AboutDiag(wxWindow* parent, wxWindowID id,
             const wxString& title,
@@ -39,7 +49,9 @@ Status: Latest Version
         {
             auto main_sizer = new wxBoxSizer(wxVERTICAL);
 
-            text_control = new wxTextCtrl(this, wxID_ANY, _(_about_text), wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
+            parse(about_info);
+
+            text_control = new wxTextCtrl(this, wxID_ANY, about_text, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
             main_sizer->Add(text_control, 1, wxGROW);
             
             auto button_sizer = CreateButtonSizer(wxOK);
@@ -50,6 +62,16 @@ Status: Latest Version
             SetSizer(main_sizer);
             SetMinSize(wxSize(300, 250));
             Fit();
+        }
+
+        void check_version()
+        {
+            const auto latest = ver::retrieve_version();
+            const auto up_to_date = ver::compare(about_info["Version"], latest);
+
+            about_info["Status"] = up_to_date ? "Up-to-date" : "New version available";
+
+            parse(about_info);
         }
     };
 }
