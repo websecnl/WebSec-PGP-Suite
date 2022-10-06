@@ -22,6 +22,7 @@
 #include "PGPGenerateKeys.h"
 #include "PGPDecrypt.h"
 #include "TextEditDiag.h"
+#include "IOwx.h"
 
 namespace suite
 {
