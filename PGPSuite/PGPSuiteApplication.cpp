@@ -219,23 +219,31 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         else if (strcmp(pgp_context, "decrypt") == 0)
             prompt_desc = _("Provide secret key password to decrypt the data\n");
         else
-            prompt_desc = _("Unknown password acquisition found: '") + _(pgp_context) + _("'.\nPlease inform developer.\n");
+            prompt_desc = _("Unknown password acquisition reason found: '") + _(pgp_context) + _("'.\nPlease inform developer.\n");
+                
+        wxString input = io::text_prompt(prompt, prompt_desc);
 
-        wxTextEntryDialog dialog(nullptr, prompt_desc, prompt, wxEmptyString, wxOK | wxCANCEL);
+        pgp::utils::copy_to_ctype(input, buf, buf_len);
 
-        if (dialog.ShowModal() != wxID_OK)
+        return input.size() > 0;
+    };
+
+    /* passprovider that cant be called twice in a row */
+    auto passprovider_once = [](rnp_ffi_t, void*, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len) -> bool
+    {
+        static bool called_once = false;
+
+        if (called_once)
         {
-            wxMessageBox(_("Operation halted"), _("Cancelled"));
-            return false;
+            called_once = false;
+            return true;
         }
 
-        wxString input = dialog.GetValue();
+        wxString input = io::text_prompt(_("Please enter a password"), _("Provide a password to encrypt secret key.\n"));
 
-        auto end = input.end();
-        if (input.size() > buf_len)
-            end = input.begin() + (buf_len - 1);
+        pgp::utils::copy_to_ctype(input, buf, buf_len);
 
-        std::copy(input.begin(), end, buf);
+        called_once = true;
 
         return input.size() > 0;
     };
@@ -246,11 +254,11 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
     /* ------------------------------------- GENERATE ---------------------------------------------- */
 
     // (TODO) generate save as dialogues for saving pubring and secring
-    Bind(wxEVT_BUTTON, [this, passprovider](wxCommandEvent& e)
+    Bind(wxEVT_BUTTON, [this, passprovider_once](wxCommandEvent& e)
         {
             PushStatusText(_("Generating..."));
             
-            const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", _json_data, passprovider);
+            const auto success = pgp::generate_keys("pubring.pgp", "secring.pgp", _json_data, passprovider_once);
             
             PopStatusText();
 
