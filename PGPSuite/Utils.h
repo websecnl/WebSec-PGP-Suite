@@ -1,9 +1,11 @@
 #pragma once
 
+#include <Windows.h>
 #include <string>
 #include <algorithm>
-#include <Windows.h>
 #include <optional>
+
+#include "pgpsuite_common.h"
 
 namespace pgp::utils
 {
@@ -77,6 +79,17 @@ namespace pgp::utils
             return "Non valid characters detected in:\n" + *invalid_type + "\nMake sure all characters are ascii.";
         }
         return true;
+    }
+
+    /* Copy C++ types safely to C types, truncates if dest_size is less than source size */
+    template<typename _Buffer> inline
+    void copy_to_ctype(const _Buffer& source, char* dest, size_t dest_size)
+    {
+        auto end = source.end();
+        if (source.size() > dest_size)
+            end = source.begin() + (dest_size - 1);
+
+        std::copy(source.begin(), end, dest);
     }
 }
 
