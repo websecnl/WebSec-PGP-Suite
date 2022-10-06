@@ -23,6 +23,7 @@
 #include "PGPDecrypt.h"
 #include "TextEditDiag.h"
 #include "IOwx.h"
+#include "resource.h"
 
 namespace suite
 {
@@ -147,6 +148,7 @@ R"({
         virtual bool OnInit()
         {
             MyFrame* frame = new MyFrame();
+            frame->SetIcon(wxIcon(_("MY_ICON")));
             frame->Show(true);
             return true;
         }
