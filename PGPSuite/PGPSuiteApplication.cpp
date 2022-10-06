@@ -390,5 +390,11 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             }
 
         }, ID_SHOW_GENERATE_SETTINGS, ID_SHOW_GENERATE_SETTINGS);
+
+    Bind(wxEVT_MENU, [this](wxCommandEvent& e)
+        {
+            AboutDiag diag = AboutDiag(this, wxID_ABOUT, _("About"));
+            diag.ShowModal();
+        }, wxID_ABOUT, wxID_ABOUT);
 }
 

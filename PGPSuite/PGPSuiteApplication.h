@@ -24,6 +24,7 @@
 #include "TextEditDiag.h"
 #include "IOwx.h"
 #include "resource.h"
+#include "AboutDiag.h"
 
 namespace suite
 {
