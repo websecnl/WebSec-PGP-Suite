@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Networks.h"
+
 #include <wx/txtstrm.h>
 #include <wx/sstream.h>
 #include <wx/protocol/http.h>
@@ -11,34 +13,26 @@ namespace suite::ver
         return a == b;
     }
 
-    inline static wxString retrieve_version()
+    /* Will write a proper parser once it is required to receive more info from server, for now enjoy this monstrosity */
+    inline std::string parse_version(const std::string& response)
     {
-        wxString res;
-        wxHTTP get;
-        get.SetHeader(_T("Content-type"), _T("text/html; charset=utf-8"));
-        get.SetTimeout(2);
-        long seconds_passed{};
+        auto start = response.find(PGPSUITE_SIG);
 
-        while (!get.Connect(_T("www.example.com")) && seconds_passed < get.GetTimeout())
-        {
-            wxSleep(1);
-            seconds_passed++;
-        }
+        if (response.npos == start) return "";
 
-        wxApp::IsMainLoopRunning();
+        start = response.find('=', start);
+        auto end = response.find(';', start);
 
-        wxInputStream* httpStream = get.GetInputStream(_T("/"));
+        if (start == response.npos || end == response.npos) return "";
 
-        if (get.GetError() == wxPROTO_NOERR)
-        {
-            wxStringOutputStream out_stream(&res);
-            httpStream->Read(out_stream);
-        }
+        return response.substr(start + 1, end - start - 1);
+    }
 
-        wxDELETE(httpStream);
-        get.Close();
+    inline std::string retrieve_version()
+    {
+        const auto response = net::get_network_data();
 
-        return res;
+        return parse_version(response);
     }
 
     inline static wxString get_local_version()
