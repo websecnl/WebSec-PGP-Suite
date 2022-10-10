@@ -7,11 +7,22 @@
 #endif
 
 #include "versioning.h"
+#include "enums.h"
 
 #include <unordered_map>
+#include <vector>
 
 namespace suite
 {
+    namespace
+    {
+        /* Need this because unordered_map/map doesnt keep insertion order */
+        inline static const std::vector<wxString> about_info_order
+        {
+            _("Address"), _("Contact"), _("Email"), _("Tel"), _("Application Info"), _("Developer"), _("Version"), _("Status"),
+        };
+    }
+
     inline static std::unordered_map<wxString, wxString> about_info
     {
         {_("Address"), _("WebSec B.V.\nKeurenplein 41 A6260\n1069 CD Amsterdam")},
@@ -29,14 +40,24 @@ namespace suite
     {
     protected:
         wxTextCtrl* text_control{ nullptr };
-        wxString about_text;       
+        wxString about_text;   
 
         void parse(const std::unordered_map<wxString, wxString>& info)
         {
-            for (const auto& [key, val] : info)
+            about_text.clear();
+            for (const auto& order_key : about_info_order)
             {
-                about_text += key + _(": ") + val + _("\n");
+                const auto iter = info.find(order_key);
+                if (iter == info.end()) 
+                    /* Makes it obvious if i missed something */
+                    wxMessageBox(_("UNKNOWN KEY IN ORDER"));
+                else
+                {
+                    const auto& [key, val] = *info.find(order_key);
+                    about_text += key + _(": ") + val + _("\n");
+                }
             }
+            text_control->SetValue(about_text);
         }
     public:
         AboutDiag(wxWindow* parent, wxWindowID id,
@@ -49,27 +70,43 @@ namespace suite
         {
             auto main_sizer = new wxBoxSizer(wxVERTICAL);
 
-            parse(about_info);
-
-            text_control = new wxTextCtrl(this, wxID_ANY, about_text, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
+            text_control = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
             main_sizer->Add(text_control, 1, wxGROW);
             
             auto button_sizer = CreateButtonSizer(wxOK);
+            auto version_check = new wxButton(this, ID_CHECK_VERSION, _("Check version"));
             main_sizer->Add(button_sizer);
+            button_sizer->Add(version_check);
+
+            parse(about_info);
 
             text_control->SetFocus();
 
             SetSizer(main_sizer);
             SetMinSize(wxSize(300, 250));
             Fit();
+            
+            Bind(wxEVT_BUTTON, &AboutDiag::check_version, this, ID_CHECK_VERSION, ID_CHECK_VERSION);
         }
 
-        void check_version()
+        void check_version(wxCommandEvent&)
         {
-            const auto latest = ver::retrieve_version();
+            const wxString latest = ver::retrieve_version();
+
+            if (latest.size() == 0)
+            {
+                wxMessageBox(_("Could not reach host, check your internet connection."), _("Error."), wxICON_ERROR);
+                return;
+            }
+
             const auto up_to_date = ver::compare(about_info["Version"], latest);
 
-            about_info["Status"] = up_to_date ? "Up-to-date" : "New version available";
+            about_info["Status"] = up_to_date ? _("Up-to-date") : _("New version available");
+
+            if(!up_to_date)
+            {
+                wxMessageBox(_("Current version: ") + about_info["Version"] + _("\nNew version: ") + latest, _("New version available."));
+            }
 
             parse(about_info);
         }
