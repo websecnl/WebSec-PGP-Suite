@@ -33,11 +33,12 @@ namespace suite::net
         std::string response;
         asio::error_code ec;
 
-        do {
+        while (!ec)
+        {
             std::array<char, 1024> buf;
             size_t bytes_transferred = ssock.read_some(asio::buffer(buf), ec);
             if (!ec) response.append(buf.data(), buf.data() + bytes_transferred);
-        } while (!ec);
+        }
 
         return response;
     }
