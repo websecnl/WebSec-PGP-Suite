@@ -25,6 +25,7 @@
 #include "IOwx.h"
 #include "resource.h"
 #include "AboutDiag.h"
+#include "enums.h"
 
 namespace suite
 {
@@ -54,29 +55,7 @@ R"({
     }
 }
 )";
-
-    enum
-    {
-        ID_Hello = wxID_HIGHEST + 1,
-
-        /* id's to link button to input field */
-        ID_OPEN_PUBKEY,
-        ID_OPEN_SECKEY,
-        ID_OPEN_ENC_FILE,
-        ID_OPEN_FILE,
-        ID_EDIT_TEXT,
-        
-        /* actions */
-        ID_GENERATE_KEY,
-        ID_ENCRYPT_FILE,
-        ID_DECRYPT_FILE,
-        ID_ENC_TYPE_RADIO_CHANGED,
-        ID_SHOW_GENERATE_SETTINGS,
-
-        /* unused */
-        ID_SAVE_FILE,
-    };
-
+       
     /* Encryption mode 
         - File mode reads file and encrypts content
         - Text mode encrypts the given data */
