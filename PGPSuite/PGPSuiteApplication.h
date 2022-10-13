@@ -129,6 +129,7 @@ R"({
         {
             MyFrame* frame = new MyFrame();
             frame->SetIcon(wxIcon(_("MY_ICON")));
+            frame->CenterOnScreen(wxBOTH);
             frame->Show(true);
             return true;
         }
