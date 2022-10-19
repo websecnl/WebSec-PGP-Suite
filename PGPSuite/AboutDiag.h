@@ -8,15 +8,17 @@
 
 #include "versioning.h"
 #include "enums.h"
+#include "PersistentData.h"
 
 #include <unordered_map>
 #include <vector>
+
 
 namespace suite
 {
     namespace
     {
-        /* Need this because unordered_map/map doesnt keep insertion order */
+        /* Need this because unordered_map/map doesnt keep insertion order, sequence map when? */
         inline static const std::vector<wxString> about_info_order
         {
             _("Address"), _("Contact"), _("Email"), _("Tel"), _("Application Info"), _("Developer"), _("Version"), _("Status"),
@@ -74,9 +76,14 @@ namespace suite
             main_sizer->Add(text_control, 1, wxGROW);
             
             auto button_sizer = CreateButtonSizer(wxOK);
+            
             auto version_check = new wxButton(this, ID_CHECK_VERSION, _("Check version"));
-            main_sizer->Add(button_sizer);
             button_sizer->Add(version_check);
+            
+            auto checkbox = new wxCheckBox(this, ID_STARTUP_CHECKBOX_SETTING, _("Check on startup"));
+            button_sizer->Add(checkbox);
+
+            main_sizer->Add(button_sizer);
 
             parse(about_info);
 
@@ -86,7 +93,20 @@ namespace suite
             SetMinSize(wxSize(300, 250));
             Fit();
             
+            const auto res = persistent::settings().get("version").get("startup_check");
+            checkbox->SetValue(res == "yes");
+            
             Bind(wxEVT_BUTTON, &AboutDiag::check_version, this, ID_CHECK_VERSION, ID_CHECK_VERSION);
+            
+            Bind(wxEVT_CHECKBOX, [checkbox](wxCommandEvent&)
+                {
+                    const auto new_val = checkbox->GetValue();
+                    auto& settings = persistent::settings();
+                    
+                    settings["version"]["startup_check"] = new_val ? "yes" : "no";
+
+                    persistent::save_settings();
+                }, ID_STARTUP_CHECKBOX_SETTING, ID_STARTUP_CHECKBOX_SETTING);
         }
 
         void check_version(wxCommandEvent&)
