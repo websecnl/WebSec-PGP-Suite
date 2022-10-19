@@ -398,3 +398,12 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         }, wxID_ABOUT, wxID_ABOUT);
 }
 
+void suite::MyFrame::startup_version_check()
+{
+    const bool perform_check = persistent::settings().get("version").get("startup_check") == "yes";
+
+    if (!perform_check) return;
+
+    ver::verify_local_version();
+}
+

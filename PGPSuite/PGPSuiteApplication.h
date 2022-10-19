@@ -79,6 +79,7 @@ R"({
 
         /* i prefer linking them at runtime, because lambda's */
         void runtime_bind_events(wxBookCtrlBase* notebook);
+        void startup_version_check();
     public:
         MyFrame()
             : wxFrame(NULL, wxID_ANY, "PGPSuite")
@@ -110,6 +111,8 @@ R"({
 
             CreateStatusBar();
             SetStatusText("Ready...");
+
+            startup_version_check();
 
             runtime_bind_events(notebook);
         }
