@@ -13,23 +13,6 @@ namespace suite::ver
         return a == b;
     }
 
-    /* Checks if the local version is up-to-date, otherwise it displays a dialogue giving the latest version
-    @return If local version is up-to-date */
-    inline bool verify_local_version()
-    {
-        const auto local_version = get_local_version();
-        const auto latest_version = retrieve_version();
-
-        const auto res = compare(local_version, latest_version);
-
-        if (!res)
-        {
-            wxMessageBox(_("Current version: ") + local_version + _("\nNew version: ") + latest_version, _("New version available."));
-        }
-
-        return res;
-    }
-
     /* Will write a proper parser once it is required to receive more info from server, for now enjoy this monstrosity */
     inline std::string parse_version(const std::string& response)
     {
@@ -82,5 +65,22 @@ namespace suite::ver
         wxTextInputStream input( fstream );
 
         return cached_version = input.ReadLine();
+    }
+
+    /* Checks if the local version is up-to-date, otherwise it displays a dialogue giving the latest version
+    @return If local version is up-to-date */
+    inline bool verify_local_version()
+    {
+        const auto local_version = get_local_version();
+        const auto latest_version = retrieve_version();
+
+        const auto res = compare(local_version, latest_version);
+
+        if (!res)
+        {
+            wxMessageBox(_("Current version: ") + local_version + _("\nNew version: ") + latest_version, _("New version available."));
+        }
+
+        return res;
     }
 }
