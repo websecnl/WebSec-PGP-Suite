@@ -111,18 +111,7 @@ namespace suite
 
         void check_version(wxCommandEvent&)
         {
-            const wxString latest = ver::retrieve_version();           
-
-            if (latest.empty()) return;
-
-            const auto up_to_date = ver::compare(about_info["Version"], latest);
-
-            about_info["Status"] = up_to_date ? _("Up-to-date") : _("New version available");
-
-            if(!up_to_date)
-            {
-                wxMessageBox(_("Current version: ") + about_info["Version"] + _("\nNew version: ") + latest, _("New version available."));
-            }
+            about_info["Status"] = ver::verify_local_version() ? _("Up-to-date") : _("New version available");
 
             parse(about_info);
         }
