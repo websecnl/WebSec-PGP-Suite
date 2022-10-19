@@ -1,19 +1,19 @@
 # Dependencies
  - rnpgp -> https://github.com/rnpgp/rnp 
-  - PGP Encryption
-  - PGP Decryption
-  - PGP Key Generation
+   - PGP Encryption
+   - PGP Decryption
+   - PGP Key Generation
   
  - wxWidgets -> https://www.wxwidgets.org/
-  - Everything GUI
+   - Everything GUI
   
  - Asio -> https://think-async.com/Asio/
-  - Retrieving Version Number
+   - Retrieving Version Number
   
  - OpenSSL -> https://www.openssl.org/
-  - Enabling HTTPS communication with Asio
+   - Enabling HTTPS communication with Asio
   
  - mINI -> https://github.com/pulzed/mINI
-  - Reading ini file for persistent settings
+   - Reading ini file for persistent settings
  
  License.txt is coming...
