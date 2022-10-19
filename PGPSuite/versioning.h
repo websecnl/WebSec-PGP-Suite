@@ -45,25 +45,42 @@ namespace suite::ver
         return response.substr(start + 1, end - start - 1);
     }
 
-    
+    /* Retrieves newest version from network location and caches it */
     inline std::string retrieve_version()
     {
-        const auto response = net::get_network_data();
-        auto version = parse_version(response);
+        static std::string cached_version{};
+        if (!cached_version.empty()) 
+            return cached_version;
 
-        if (version.size() == 0)
+        const auto response = net::get_network_data();
+        cached_version = parse_version(response);
+
+        if (cached_version.empty())
         {
             wxMessageBox(_("Could not reach host, check your internet connection."), _("Error."), wxICON_ERROR);
             return "";
         }
 
-        return version;
+        return cached_version;
     }
 
+    /* Retrieves local version and caches it */
     inline wxString get_local_version()
     {
+        static wxString cached_version{};
+        if (!cached_version.empty())
+            return cached_version;
+
         wxFileInputStream fstream(_("version.txt"));
+        
+        if (!fstream.IsOk())
+        {
+            wxMessageBox(_("Could not find version file, does version.txt exist?"), _("Error."), wxICON_ERROR);
+            return "";
+        }
+        
         wxTextInputStream input( fstream );
-        return input.ReadLine();
+
+        return cached_version = input.ReadLine();
     }
 }
