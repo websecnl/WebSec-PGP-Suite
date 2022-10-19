@@ -111,13 +111,9 @@ namespace suite
 
         void check_version(wxCommandEvent&)
         {
-            const wxString latest = ver::retrieve_version();
+            const wxString latest = ver::retrieve_version();           
 
-            if (latest.size() == 0)
-            {
-                wxMessageBox(_("Could not reach host, check your internet connection."), _("Error."), wxICON_ERROR);
-                return;
-            }
+            if (latest.empty()) return;
 
             const auto up_to_date = ver::compare(about_info["Version"], latest);
 
