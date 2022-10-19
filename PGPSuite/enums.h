@@ -20,6 +20,7 @@ namespace suite
         ID_ENC_TYPE_RADIO_CHANGED,
         ID_SHOW_GENERATE_SETTINGS,
         ID_CHECK_VERSION,
+        ID_STARTUP_CHECKBOX_SETTING,
 
         /* unused */
         ID_SAVE_FILE,
