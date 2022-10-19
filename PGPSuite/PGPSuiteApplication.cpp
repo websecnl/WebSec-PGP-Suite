@@ -330,9 +330,9 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             auto seckey = _input_fields["Private key"]->GetValue();
             auto file = _input_fields["File to decrypt"]->GetValue();
 
-            if (!all_filled(seckey, file))
+            if (!all_filled(file))
             {
-                wxMessageBox(_("Fill in all boxes"), _("Decryption failed"));
+                wxMessageBox(_("Provide atleast a file to decrypt."), _("Decryption failed"));
                 return;
             }
 
@@ -356,7 +356,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            const auto success = pgp::decrypt_text(std::string(seckey.mb_str()), std::string(file.mb_str()), "", passprovider);
+            const auto success = pgp::decrypt_text(std::string(file.mb_str()), "", passprovider, std::string(seckey.mb_str()));
 
             if (success)
                 wxMessageBox(_("Successfully decrypted data."), _("Success!"));
