@@ -274,10 +274,16 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             auto data = _input_fields["File to encrypt"]->GetValue();
             auto keyID = _input_fields["KeyID of recipient"]->GetValue();
             auto password = _input_fields["Password(optional)"]->GetValue();
-            
-            if (!all_filled(pubkey, data, keyID))
+                        
+            if (!all_filled(data))
             {
-                wxMessageBox(_("Fill in all boxes"), _("Encryption failed"));
+                wxMessageBox(_("Provide data to encrypt."), _("Encryption failed"), wxICON_ERROR);
+                return;
+            }
+
+            if ((!keyID.empty() && !pubkey.empty()) || !password.empty())
+            {
+                wxMessageBox(_("Provide either a public key and keyID, a password or both."), _("Encryption failed"), wxICON_ERROR);
                 return;
             }
 
