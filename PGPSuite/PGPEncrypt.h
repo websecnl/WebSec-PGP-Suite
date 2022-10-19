@@ -13,7 +13,7 @@ namespace pgp
     @param pubkey_file: the filename of the recipient's public key @TODO(allow adding multiple keys)
     @param userid: the userid of the key
     @param save_to: preferred filename to save encrypted data to 
-    @param add_password: wether to add a password to the encrypted text 
+    @param password: password to encrypt text with, no password if left empty
     @return boolean indicating success or failure of encryption */
-    OpRes encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std::string userid, std::string save_to = "message.asc", bool add_password = false);
+    OpRes encrypt_text(uint8_t* data, size_t size, std::string pubkey_file, std::string userid, std::string save_to = "message.asc", std::string password = {});
 }
