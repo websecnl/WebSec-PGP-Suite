@@ -11,21 +11,41 @@ pgp::OpRes pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file
 
     if (auto res = pgp::utils::validate_strings<std::string>(pubkey_file, userid, save_to); !res) return res;
 
-    /* Load key file */ /* should in the future allow for adding multiple keys */
-    if (input_key.set_input_from_path(std::forward<std::string>(pubkey_file)) != RNP_SUCCESS) return "Failed setting input\n";
-
     /* Load the to be encrypted message */
     if (input_message.set_input_from_memory(data, size, false) != RNP_SUCCESS) return "Failed setting input from memory\n";
 
     /* Prepare the output for the encrypted message */
     if (output_message.set_output_to_path(std::forward<std::string>(save_to)) != RNP_SUCCESS) return "Failed setting output\n";
 
+    if (!pubkey_file.empty())
+    {
+        /* Load key file */ /* should in the future allow for adding multiple keys */
+        if (input_key.set_input_from_path(pubkey_file) != RNP_SUCCESS) return "Failed setting input\n";
+
+        /* Attempt to read pubring.pgp for its keys */
+        if (rnp_load_keys(ffi, "GPG", input_key, RNP_LOAD_SAVE_PUBLIC_KEYS) != RNP_SUCCESS)
+        {
+            return "Failed to read: " + pubkey_file;
+        }
+
+        /* Locate key using the userid and load it into the key_handle_t */
+        if (rnp_locate_key(ffi, "userid", userid.c_str(), &key) != RNP_SUCCESS)
+        {
+            return "Failed to locate recipient key: " + userid;
+        }
+    }
+
     rnp::EncryptOperation op(ffi, input_message, output_message);
 
-    /* Attempt to read pubring.pgp for its keys */
-    if (rnp_load_keys(ffi, "GPG", input_key, RNP_LOAD_SAVE_PUBLIC_KEYS) != RNP_SUCCESS)
+    if (!pubkey_file.empty())
     {
-        return "Failed to read pubring.pgp\n";
+        /* Recipient public key, the public keys encrypt the data so
+            that the recipient can decrypt it using their secret key
+            thats why we say we add the public key of the recipient */
+        if (op.add_recipient(key) != RNP_SUCCESS)
+        {
+            return "Failed to locate recipient key: " + userid;
+        }
     }
 
     /* Set encryption parameters */
@@ -38,21 +58,7 @@ pgp::OpRes pgp::encrypt_text(uint8_t* data, size_t size, std::string pubkey_file
 
     /* Setting password */
     if(!password.empty())
-        op.set_password(password.c_str(), RNP_ALGNAME_SHA256, 0, RNP_ALGNAME_AES_256);
-
-    /* Locate key using the userid and load it into the key_handle_t */
-    if (rnp_locate_key(ffi, "userid", userid.c_str(), &key) != RNP_SUCCESS)
-    {
-        return "Failed to locate recipient key: " + userid;
-    }
-
-    /* Recipient public key, the public keys encrypt the data so
-    that the recipient can decrypt it using their secret key
-    thats why we say we add the public key of the recipient */
-    if (op.add_recipient(key) != RNP_SUCCESS)
-    {
-        return "Failed to locate recipient key: " + userid;
-    }
+        op.set_password(password.c_str(), RNP_ALGNAME_SHA256, 0, RNP_ALGNAME_AES_256);   
 
     rnp_key_handle_destroy(key);
     key = nullptr;
