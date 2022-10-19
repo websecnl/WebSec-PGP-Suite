@@ -19,10 +19,9 @@ bool pgp::cin_pass_provider(rnp_ffi_t ffi, void* app_ctx, rnp_key_handle_t key, 
     return input.size() > 0;
 }
 
-pgp::OpRes pgp::decrypt_text(std::string secring_file, std::string encrypted_file, std::string output_fname, rnp_password_cb passprovider)
+pgp::OpRes pgp::decrypt_text(std::string encrypted_file, std::string output_fname, rnp_password_cb passprovider, std::string secring_file)
 {
     rnp::FFI ffi("GPG", "GPG");
-    rnp::Input keyfile;
     rnp::Input input;
     rnp::Output output;
     std::vector<uint8_t> buffer;
@@ -32,16 +31,19 @@ pgp::OpRes pgp::decrypt_text(std::string secring_file, std::string encrypted_fil
     if (output_fname.size() == 0)
         output_fname = utils::remove_extension(encrypted_file);
 
-    /* load secret keyring, as it is required for public-key decryption. However, you may
-        * need to load public keyring as well to validate key's signatures. */
-    if (keyfile.set_input_from_path(std::forward<std::string>(secring_file))) return false;
-
-    /* we may use RNP_LOAD_SAVE_SECRET_KEYS | RNP_LOAD_SAVE_PUBLIC_KEYS as well*/
-    if (rnp_load_keys(ffi, "GPG", keyfile, RNP_LOAD_SAVE_SECRET_KEYS) != RNP_SUCCESS)
+    /* if a secret keyring is provided, load it up */
+    if (!secring_file.empty())
     {
-        return "Failed to read secring.pgp\n";
+        rnp::Input keyfile;
+
+        /* load secret keyring, as it is required for public-key decryption. However, you may
+            * need to load public keyring as well to validate key's signatures. */
+        if (keyfile.set_input_from_path(secring_file)) 
+            return "Failed setting input for: " + secring_file;
+
+        if (rnp_load_keys(ffi, "GPG", keyfile, RNP_LOAD_SAVE_SECRET_KEYS) != RNP_SUCCESS)
+            return "Failed to read secring.pgp\n";
     }
-    keyfile.destroy();
 
     rnp_ffi_set_pass_provider(ffi, passprovider, NULL);
 
