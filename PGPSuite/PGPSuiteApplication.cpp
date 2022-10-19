@@ -11,7 +11,7 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
 
     /* set names */
     for (auto flags = wxEXPAND | wxALL ^ wxBOTTOM;
-        auto str : { "File to encrypt", "KeyID of recipient", "Recipient public key" })
+        auto str : { "File to encrypt", "KeyID of recipient", "Recipient public key", "Password(optional)" })
     {
         auto mainInputSizer = new wxBoxSizer(wxVERTICAL);
         auto nameSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -167,9 +167,6 @@ wxPanel* MyFrame::create_decrypt_page(wxBookCtrlBase* parent)
 wxMenuBar* MyFrame::create_menu_bar()
 {
     wxMenu* menu_file = new wxMenu;
-    menu_file->Append(ID_Hello, "&Hello...\tCtrl-H",
-        "Help string shown in status bar for this menu item");
-    menu_file->AppendSeparator();
     menu_file->Append(wxID_EXIT);
 
     wxMenu* menu_help = new wxMenu;
@@ -276,6 +273,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             auto pubkey = _input_fields["Recipient public key"]->GetValue();
             auto data = _input_fields["File to encrypt"]->GetValue();
             auto keyID = _input_fields["KeyID of recipient"]->GetValue();
+            auto password = _input_fields["Password(optional)"]->GetValue();
             
             if (!all_filled(pubkey, data, keyID))
             {
@@ -310,8 +308,8 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            const auto success = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size() * (sizeof(wchar_t) / sizeof(uint8_t)), std::string(pubkey.mb_str()), std::string(keyID.mb_str()), std::string(fileDialog.GetPath().mb_str()));
-            // const auto success = pgp::encrypt_text((uint8_t*)data.wc_str(), data.size() * 2, std::string(pubkey.mb_str()), std::string(keyID.mb_str()), std::string(fileDialog.GetPath().mb_str()));
+            const auto success = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size() * (sizeof(wchar_t) / sizeof(uint8_t)), 
+                std::string(pubkey.mb_str()), std::string(keyID.mb_str()), std::string(fileDialog.GetPath().mb_str()), std::string(password.mb_str()));
 
             if (success)
                 wxMessageBox(_("Successfully encrypted data."), _("Success!"));
