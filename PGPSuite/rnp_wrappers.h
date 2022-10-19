@@ -163,7 +163,7 @@ namespace rnp
         Input() : IIOWrapper(rnp_input_destroy) {}
 
         /* @brief Opens the given path for loading data */
-        rnp_result_t set_input_from_path(std::string && path)
+        rnp_result_t set_input_from_path(std::string path)
         {
             prepare_io(IOMode::Path);
             
