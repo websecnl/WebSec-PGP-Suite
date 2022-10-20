@@ -112,11 +112,12 @@ R"({
             CreateStatusBar();
             SetStatusText("Ready...");
 
-            startup_version_check();
-
             runtime_bind_events(notebook);
-
-            _input_fields["File to decrypt"]->SetValue(argc > 1 ? args[1] : _(""));
+            
+            if (argc > 1)
+                _input_fields["File to decrypt"]->SetValue(args[1]);
+            else
+                startup_version_check();
         }
     private:
         void OnExit(wxCommandEvent& event);
