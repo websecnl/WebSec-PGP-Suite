@@ -81,17 +81,17 @@ R"({
         void runtime_bind_events(wxBookCtrlBase* notebook);
         void startup_version_check();
     public:
-        MyFrame()
+        MyFrame(int argc, wxCmdLineArgsArray& args)
             : wxFrame(NULL, wxID_ANY, "PGPSuite")
         {
             auto menuBar = create_menu_bar();
-
+            
             SetMenuBar(menuBar);
 
             wxNotebook* notebook = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxSize(400, 300));
 
             auto mainSizer = new wxBoxSizer(wxVERTICAL);
-
+                        
             auto encryptPanel = create_encryption_page(notebook);
             auto decryptPanel = create_decrypt_page(notebook);
             auto generatePanel = create_generate_page(notebook);
@@ -115,6 +115,8 @@ R"({
             startup_version_check();
 
             runtime_bind_events(notebook);
+
+            _input_fields["File to decrypt"]->SetValue(argc > 1 ? args[1] : _(""));
         }
     private:
         void OnExit(wxCommandEvent& event);
@@ -130,7 +132,7 @@ R"({
     public:
         virtual bool OnInit()
         {
-            MyFrame* frame = new MyFrame();
+            MyFrame* frame = new MyFrame(argc, argv);
             frame->SetIcon(wxIcon(_("MY_ICON")));
             frame->CenterOnScreen(wxBOTH);
             frame->Show(true);
