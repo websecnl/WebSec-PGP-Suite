@@ -58,7 +58,7 @@ namespace suite::ver
         
         if (!fstream.IsOk())
         {
-            wxMessageBox(_("Could not find version file, does version.txt exist?"), _("Error."), wxICON_ERROR);
+            // wxMessageBox(_("Could not find version file, does version.txt exist?"), _("Error."), wxICON_ERROR);
             return "";
         }
         
