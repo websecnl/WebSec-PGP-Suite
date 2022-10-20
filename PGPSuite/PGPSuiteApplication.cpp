@@ -281,7 +281,10 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            if ((!keyID.empty() && !pubkey.empty()) || !password.empty())
+            const bool has_keyid_and_pubkey = !keyID.empty() && !pubkey.empty();
+            const bool has_password = !password.empty();
+
+            if (!has_keyid_and_pubkey && !has_password)
             {
                 wxMessageBox(_("Provide either a public key and keyID, a password or both."), _("Encryption failed"), wxICON_ERROR);
                 return;
