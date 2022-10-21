@@ -24,5 +24,7 @@ mINI::INIStructure& suite::persistent::settings()
 
 void suite::persistent::save_settings()
 {
+    if (intern::data.size() < 1) return;
+
     intern::file.write(intern::data);
 }
