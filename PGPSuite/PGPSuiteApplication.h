@@ -131,11 +131,17 @@ R"({
     public:
         virtual bool OnInit()
         {
-            //MyFrame* frame = new MyFrame(argc, argv);
-            auto* frame = new suite::DecryptFrame(argc, argv);
+            wxFrame* frame = nullptr;
+            
+            if (argc > 1)
+                frame = new suite::DecryptFrame(argc, argv);
+            else
+                frame = new MyFrame;
+    
             frame->SetIcon(wxIcon(_("MY_ICON")));
             frame->CenterOnScreen(wxBOTH);
             frame->Show(true);
+
             return true;
         }
     };
