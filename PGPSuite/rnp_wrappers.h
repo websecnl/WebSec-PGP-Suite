@@ -314,23 +314,49 @@ namespace rnp
     class PacketInfo
     {
     protected:
-        bool is_password_protected{ false };
-        bool is_key_protected{ false };
+        bool _is_password_protected{ false };
+        bool _is_key_protected{ false };
+
+        static bool data_has_header(const std::string& data, std::string header)
+        {
+            return data.find(header, 0) != data.npos;
+        }
+
+        void parse(std::string data)
+        {
+            _is_key_protected = data_has_header(data, "Public-key encrypted session key packet");
+            _is_password_protected = data_has_header(data, "Symmetric-key encrypted session key packet");
+        }
     public:
+        PacketInfo() = default;
         PacketInfo(std::string filename)
+        {
+            parse_packet(filename);
+        }
+
+        rnp_result_t parse_packet(std::string filename)
         {
             Input filedata;
             Output output;
-            filedata.set_input_from_path(filename);
-            output.set_output_to_callback([](void*, const void* buf, size_t len) 
-                { /* write packet data to raw_data */
-                    std::string raw_data((const char*)buf, (const char*)buf + len);
 
-                    return raw_data.size() == len;
-                }, nullptr, nullptr);
-            
+            /* save packet info here */
+            std::string raw_data; 
+
+            filedata.set_input_from_path(filename);
+            output.set_output_to_callback([](void* context, const void* buf, size_t len)
+                { /* write packet data to raw_data */
+                    std::string* data = static_cast<std::string*>(context);
+                    *data = std::string((const char*)buf, (const char*)buf + len);
+
+                    return data->size() == len;
+                }, nullptr, &raw_data);
+
             rnp_dump_packets_to_output(filedata, output, 0);
+            parse(std::move(raw_data));
         }
+
+        bool password_protected() const { return _is_password_protected; }
+        bool key_protected() const { return _is_key_protected; }
 
     };
 }
