@@ -30,12 +30,12 @@ namespace suite
 			auto text = new wxStaticText(parent, wxID_ANY, static_text);
 			auto text_input = new wxTextCtrl(parent, wxID_ANY);
 
-			input_sizer->Add(text, 0, wxTOP, 15);
+			input_sizer->Add(text, 0, wxTOP | wxLEFT, 15);
 			
 			if (button_id != ID_NONE)
 			{
 				auto file_select_button = new wxButton(parent, button_id, _("File..."));
-				input_sizer->Add(file_select_button, 0, wxTOP, 15);
+				input_sizer->Add(file_select_button, 0, wxTOP | wxLEFT, 15);
 			}
 
 			input_sizer->Add(text_input, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 15);
@@ -67,13 +67,16 @@ namespace suite
 				auto key_sizer = create_input_box(panel, _("Secret key: "), TextInput::SecretKey, ID_SELECT_KEYFILE);
 
 				main_sizer->Add(key_sizer, 1, wxEXPAND | wxALL ^ wxBOTTOM);
-			}
 
+				if (info.password_protected())
+					main_sizer->Add(new wxStaticText(panel, wxID_ANY, _("or")), 0, wxALL, 5);
+			}
+			
 			if (info.password_protected())
 			{
 				auto password_sizer = create_input_box(panel, _("Password: "), TextInput::Password);
 
-				main_sizer->Add(password_sizer);
+				main_sizer->Add(password_sizer, 1, wxEXPAND | wxALL ^ wxBOTTOM);
 			}
 
 			auto button_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -104,10 +107,21 @@ namespace suite
 				return {};
 			};
 			
-			Bind(wxEVT_BUTTON, [this, filename, passprovider, string_if_map_has] (wxCommandEvent&)
+			Bind(wxEVT_BUTTON, [this, packet = info, filename, passprovider, string_if_map_has] (wxCommandEvent&)
 				{
 					auto password = string_if_map_has(TextInput::Password);
 					auto secret_key = string_if_map_has(TextInput::SecretKey);
+
+					const bool forgot_pass = packet.password_protected() && password.empty();
+					const bool forgot_key = packet.key_protected() && secret_key.empty();
+					const bool forgot_both = forgot_pass && forgot_key;
+
+					/* check if a packet protected by only one measure has its specific input filled in */
+					if (forgot_both)
+					{
+						wxMessageBox(packet.both() ? _("Please fill one of the boxes") : _("Please fill in all boxes"));
+						return;
+					}
 
 					const auto res = pgp::decrypt_text(filename, "", passprovider, password.size() > 0 ? &password : NULL, secret_key);
 
