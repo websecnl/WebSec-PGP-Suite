@@ -154,7 +154,7 @@ namespace rnp
             return rnp_output_to_callback(&io_object, callback, closer, app_context);
         }
 
-        rnp_result_t set_output_to_path(std::string&& path)
+        rnp_result_t set_output_to_path(std::string path)
         {
             prepare_io(IOMode::Path);
 
