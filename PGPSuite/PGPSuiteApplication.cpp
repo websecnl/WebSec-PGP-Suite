@@ -205,18 +205,9 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
     auto passprovider = [](rnp_ffi_t, void*, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len) -> bool
     {
         /* change prompt if asked for key pass or for file pass */
-        wxString prompt = _("Please enter a password"), prompt_desc{};
-        
-        if (strcmp(pgp_context, "protect") == 0)
-            prompt_desc = _("Provide a password to encrypt secret key\n");
-        else if (strcmp(pgp_context, "unprotect") == 0)
-            prompt_desc = _("Provide password to decrypt secret key\n");
-        else if (strcmp(pgp_context, "decrypt (symmetric)") == 0)
-            prompt_desc = _("Provide password of the encrypted message\n");
-        else if (strcmp(pgp_context, "decrypt") == 0)
-            prompt_desc = _("Provide secret key password to decrypt the data\n");
-        else
-            prompt_desc = _("Unknown password acquisition reason found: '") + _(pgp_context) + _("'.\nPlease inform developer.\n");
+        wxString 
+            prompt = _("Please enter a password"), 
+            prompt_desc = rnp::get_password_acquisition_reason(pgp_context);
                 
         wxString input = io::text_prompt(prompt, prompt_desc);
 
