@@ -15,12 +15,15 @@ namespace pgp
         char                buf[],
         size_t              buf_len);
 
-
     /* @brief Decrypt files using secret key 
     @param secring_file: Filename of secret keyring
     @param encrypted_file: Filename with encrypted file
     @param output_fname: Filename of the decrypted data,
     if empty, name will be same as encrypted file minus .asc
     @param passprovider: function pointer to a password provider */
-    OpRes decrypt_text(std::string encrypted_file = "message.asc", std::string output_fname = "", rnp_password_cb passprovider = cin_pass_provider, std::string secring_file = {});
+    OpRes decrypt_text(
+        std::string encrypted_file = "message.asc",
+        std::string output_fname = "",
+        rnp_password_cb passprovider = cin_pass_provider, void* context = nullptr,
+        std::string secring_file = {});
 }
