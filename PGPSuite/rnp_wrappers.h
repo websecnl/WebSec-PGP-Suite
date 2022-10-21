@@ -363,4 +363,22 @@ namespace rnp
         bool password_protected() const { return _is_password_protected; }
         bool key_protected() const { return _is_key_protected; }
     };
+
+    inline std::string get_password_acquisition_reason(const char* pgp_context)
+    {
+        std::string prompt_desc{};
+
+        if (strcmp(pgp_context, "protect") == 0)
+            prompt_desc = "Provide a password to encrypt secret key\n";
+        else if (strcmp(pgp_context, "unprotect") == 0)
+            prompt_desc = "Provide password to decrypt secret key\n";
+        else if (strcmp(pgp_context, "decrypt (symmetric)") == 0)
+            prompt_desc = "Provide password of the encrypted message\n";
+        else if (strcmp(pgp_context, "decrypt") == 0)
+            prompt_desc = "Provide secret key password to decrypt the data\n";
+        else
+            prompt_desc = std::string("Unknown password acquisition reason found: '") + pgp_context + "'.\nPlease inform developer.\n";
+
+        return prompt_desc;
+    }
 }
