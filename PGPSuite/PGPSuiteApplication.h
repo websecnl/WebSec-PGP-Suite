@@ -26,6 +26,7 @@
 #include "resource.h"
 #include "AboutDiag.h"
 #include "enums.h"
+#include "QuickPromptOperations.h"
 
 namespace suite
 {
@@ -81,7 +82,7 @@ R"({
         void runtime_bind_events(wxBookCtrlBase* notebook);
         void startup_version_check();
     public:
-        MyFrame(int argc, wxCmdLineArgsArray& args)
+        MyFrame()
             : wxFrame(NULL, wxID_ANY, "PGPSuite")
         {
             auto menuBar = create_menu_bar();
@@ -114,10 +115,7 @@ R"({
 
             runtime_bind_events(notebook);
             
-            if (argc > 1)
-                _input_fields["File to decrypt"]->SetValue(args[1]);
-            else
-                startup_version_check();
+            startup_version_check();
         }
     private:
         void OnExit(wxCommandEvent& event);
@@ -133,7 +131,8 @@ R"({
     public:
         virtual bool OnInit()
         {
-            MyFrame* frame = new MyFrame(argc, argv);
+            //MyFrame* frame = new MyFrame(argc, argv);
+            auto* frame = new suite::DecryptFrame(argc, argv);
             frame->SetIcon(wxIcon(_("MY_ICON")));
             frame->CenterOnScreen(wxBOTH);
             frame->Show(true);
