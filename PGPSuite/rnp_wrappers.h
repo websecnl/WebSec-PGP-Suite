@@ -19,7 +19,7 @@
 namespace rnp
 {
     /* IO Modes for the various IO classes */
-    enum class IOMode { None, Memory, Path };
+    enum class IOMode { None, Memory, Path, Callback };
 
     namespace
     {
@@ -141,6 +141,16 @@ namespace rnp
             validate_result(res, "Failed setting output to memory.");
 
             return res;
+        }
+
+        /* @brief Set output to a callback
+        @param callback: The callback used to write data to output stream 
+        @param closer: Callback used to close output stream */
+        rnp_result_t set_output_to_callback(rnp_output_writer_t callback, rnp_output_closer_t closer)
+        {
+            prepare_io(IOMode::Callback);
+
+            return rnp_output_to_callback(&io_object, callback, closer, NULL);
         }
 
         rnp_result_t set_output_to_path(std::string&& path)
@@ -297,5 +307,29 @@ namespace rnp
             validate_result(res, "Error executing encryption operation");
             return res;
         }
+    };
+
+    /* Class that if fed an OpenPGP packet will parse and save all its info for later use */
+    class PacketInfo
+    {
+    protected:
+        bool is_password_protected{ false };
+        bool is_key_protected{ false };
+    public:
+        PacketInfo(std::string filename)
+        {
+            Input filedata;
+            Output output;
+            filedata.set_input_from_path(filename);
+            output.set_output_to_callback([](void*, const void* buf, size_t len) 
+                {
+                    std::string line((const char*)buf, (const char*)buf + len);
+
+                    return true;
+                }, NULL);
+            
+            rnp_dump_packets_to_output(filedata, output, 0);
+        }
+
     };
 }
