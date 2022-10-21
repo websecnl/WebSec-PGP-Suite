@@ -33,7 +33,7 @@ namespace suite
         {_("Tel"), _("085 - 0023061")},
         {_("Application Info"), _("\n")},
         {_("Developer"), _("Koen Blok")},
-        {_("Version"), ver::get_local_version() },
+        {_("Version"), _("")},
         {_("Status"), _("Not checked")},
     };
 
@@ -84,6 +84,8 @@ namespace suite
             button_sizer->Add(checkbox);
 
             main_sizer->Add(button_sizer);
+
+            about_info["Version"] = _(ver::get_local_version());
 
             parse(about_info);
 
