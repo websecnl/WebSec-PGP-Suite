@@ -145,12 +145,13 @@ namespace rnp
 
         /* @brief Set output to a callback
         @param callback: The callback used to write data to output stream 
-        @param closer: Callback used to close output stream */
-        rnp_result_t set_output_to_callback(rnp_output_writer_t callback, rnp_output_closer_t closer)
+        @param closer: Callback used to close output stream 
+        @param app_context: Context parameter that will be passed to the callbacks */
+        rnp_result_t set_output_to_callback(rnp_output_writer_t callback, rnp_output_closer_t closer, void* app_context)
         {
             prepare_io(IOMode::Callback);
 
-            return rnp_output_to_callback(&io_object, callback, closer, NULL);
+            return rnp_output_to_callback(&io_object, callback, closer, app_context);
         }
 
         rnp_result_t set_output_to_path(std::string&& path)
@@ -322,11 +323,11 @@ namespace rnp
             Output output;
             filedata.set_input_from_path(filename);
             output.set_output_to_callback([](void*, const void* buf, size_t len) 
-                {
-                    std::string line((const char*)buf, (const char*)buf + len);
+                { /* write packet data to raw_data */
+                    std::string raw_data((const char*)buf, (const char*)buf + len);
 
-                    return true;
-                }, NULL);
+                    return raw_data.size() == len;
+                }, nullptr, nullptr);
             
             rnp_dump_packets_to_output(filedata, output, 0);
         }
