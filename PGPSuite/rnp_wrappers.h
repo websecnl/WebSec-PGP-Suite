@@ -331,10 +331,10 @@ namespace rnp
         PacketInfo() = default;
         PacketInfo(std::string filename)
         {
-            parse_packet(filename);
+            (void)parse_packet(filename);
         }
 
-        rnp_result_t parse_packet(std::string filename)
+        pgp::OpRes parse_packet(std::string filename)
         {
             Input filedata;
             Output output;
@@ -342,7 +342,7 @@ namespace rnp
             /* save packet info here */
             std::string raw_data; 
 
-            filedata.set_input_from_path(filename);
+            if (filedata.set_input_from_path(filename) != RNP_SUCCESS) return "Could not find: " + filename;
             output.set_output_to_callback([](void* context, const void* buf, size_t len)
                 { /* write packet data to raw_data */
                     std::string* data = static_cast<std::string*>(context);
@@ -351,12 +351,16 @@ namespace rnp
                     return data->size() == len;
                 }, nullptr, &raw_data);
 
-            rnp_dump_packets_to_output(filedata, output, 0);
+            if (rnp_dump_packets_to_output(filedata, output, 0) != RNP_SUCCESS) return "Failed dumping packets";
+            
+            output.destroy(); /* only on destruction will output actually dump the packets */
+
             parse(std::move(raw_data));
+            
+            return true;
         }
 
         bool password_protected() const { return _is_password_protected; }
         bool key_protected() const { return _is_key_protected; }
-
     };
 }
