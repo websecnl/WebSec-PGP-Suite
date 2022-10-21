@@ -116,7 +116,6 @@ namespace suite
 					const bool forgot_key = packet.key_protected() && secret_key.empty();
 					const bool forgot_both = forgot_pass && forgot_key;
 
-					/* check if a packet protected by only one measure has its specific input filled in */
 					if (forgot_both)
 					{
 						wxMessageBox(packet.both() ? _("Please fill one of the boxes") : _("Please fill in all boxes"));
