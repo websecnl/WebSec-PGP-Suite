@@ -362,6 +362,7 @@ namespace rnp
 
         bool password_protected() const { return _is_password_protected; }
         bool key_protected() const { return _is_key_protected; }
+        bool both() const { return password_protected() && key_protected(); }
     };
 
     inline std::string get_password_acquisition_reason(const char* pgp_context)
