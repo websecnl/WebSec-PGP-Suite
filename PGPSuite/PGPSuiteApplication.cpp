@@ -350,7 +350,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            const auto success = pgp::decrypt_text(std::string(file.mb_str()), "", passprovider, std::string(seckey.mb_str()));
+            const auto success = pgp::decrypt_text(std::string(file.mb_str()), "", passprovider, NULL, std::string(seckey.mb_str()));
 
             if (success)
                 wxMessageBox(_("Successfully decrypted data."), _("Success!"));
