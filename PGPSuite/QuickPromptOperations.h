@@ -13,50 +13,74 @@ namespace suite
 	{
 	protected:
 		enum class TextInput { SecretKey, Password };
-		enum IDs { ID_Decrypt = wxID_HIGHEST + 1 };
+		enum IDs { ID_Decrypt = wxID_HIGHEST + 1, ID_SELECT_KEYFILE, ID_NONE };
 
 		std::unordered_map<TextInput, wxTextCtrl*> _textfields;
+
+		/* @brief adds an input box with correct offsets and a button if button id is not ID_NONE 
+		@param parent parent panel
+		@param sizer main sizer to add input to
+		@param static_text text to place to the left of input box 
+		@param input_element enum with an id where to store the text input in _textfields 
+		@param button_id id to give the button, leave on ID_NONE for no button
+		@return the sizer with the input box */
+		wxBoxSizer* create_input_box(wxPanel* parent, wxString static_text, TextInput input_element, IDs button_id = ID_NONE)
+		{
+			auto input_sizer = new wxBoxSizer(wxHORIZONTAL);
+			auto text = new wxStaticText(parent, wxID_ANY, static_text);
+			auto text_input = new wxTextCtrl(parent, wxID_ANY);
+
+			input_sizer->Add(text, 0, wxTOP, 15);
+			
+			if (button_id != ID_NONE)
+			{
+				auto file_select_button = new wxButton(parent, button_id, _("File..."));
+				input_sizer->Add(file_select_button, 0, wxTOP, 15);
+			}
+
+			input_sizer->Add(text_input, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 15);
+
+			_textfields.insert({ input_element, text_input });
+
+			return input_sizer;
+		}
 	public:
 		DecryptFrame(int argc, wxCmdLineArgsArray& args)
+			: wxFrame(NULL, wxID_ANY, "PGPSuite")
 		{
 			if (argc < 2) return;
 
+			auto sizer = new wxBoxSizer(wxVERTICAL);
+			SetSizer(sizer);
+			
+			auto panel = new wxPanel(this);
+			sizer->Add(panel, 1, wxEXPAND, 15);
+			
 			auto filename = std::string(args[1].mb_str());
 			rnp::PacketInfo info(filename);
 
 			auto main_sizer = new wxBoxSizer(wxVERTICAL);
+			panel->SetSizer(main_sizer);
 
 			if (info.key_protected())
 			{
-				auto input_sizer = new wxBoxSizer(wxHORIZONTAL);
-				auto text = new wxStaticText(this, wxID_ANY, _("Secret key: "));
-				auto text_input = new wxTextCtrl(this, wxID_ANY);
+				auto key_sizer = create_input_box(panel, _("Secret key: "), TextInput::SecretKey, ID_SELECT_KEYFILE);
 
-				input_sizer->Add(text);
-				input_sizer->Add(text_input);
-
-				_textfields.insert({ TextInput::SecretKey, text_input });
-
-				main_sizer->Add(input_sizer);
+				main_sizer->Add(key_sizer, 1, wxEXPAND | wxALL ^ wxBOTTOM);
 			}
 
 			if (info.password_protected())
 			{
-				auto input_sizer = new wxBoxSizer(wxHORIZONTAL);
-				auto text = new wxStaticText(this, wxID_ANY, _("Password: "));
-				auto text_input = new wxTextCtrl(this, wxID_ANY);
+				auto password_sizer = create_input_box(panel, _("Password: "), TextInput::Password);
 
-				input_sizer->Add(text);
-				input_sizer->Add(text_input);
-
-				_textfields.insert({ TextInput::Password, text_input });
-
-				main_sizer->Add(input_sizer);
+				main_sizer->Add(password_sizer);
 			}
 
-			main_sizer->Add(new wxButton(this, ID_Decrypt, _("Decrypt")));
-
-			Fit();
+			auto button_sizer = new wxBoxSizer(wxHORIZONTAL);
+			button_sizer->Add(new wxButton(panel, ID_Decrypt, _("Decrypt")), 0, wxTOP, 15);
+			main_sizer->Add(button_sizer);
+			
+			sizer->Fit(this);
 
 			auto passprovider = [](rnp_ffi_t, void* context, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len)
 			{
@@ -72,15 +96,38 @@ namespace suite
 				return password.size() != 0;
 			};
 
-			Bind(wxEVT_BUTTON, [this, filename, passprovider](wxCommandEvent&)
+			/* if map has key, return string version of value */
+			auto string_if_map_has = [this](TextInput key) -> std::string
+			{
+				if (_textfields.find(key) != _textfields.end())
+					return std::string(_textfields[key]->GetValue().mb_str());
+				return {};
+			};
+			
+			Bind(wxEVT_BUTTON, [this, filename, passprovider, string_if_map_has] (wxCommandEvent&)
 				{
-					auto password = _textfields[TextInput::Password];
-					auto key = _textfields[TextInput::SecretKey];
+					auto password = string_if_map_has(TextInput::Password);
+					auto secret_key = string_if_map_has(TextInput::SecretKey);
 
-					auto str_password = std::string(password->GetValue().mb_str());
+					const auto res = pgp::decrypt_text(filename, "", passprovider, password.size() > 0 ? &password : NULL, secret_key);
 
-					pgp::decrypt_text(filename, "", passprovider, &str_password, std::string(key->GetValue().mb_str()));
+					if (res)
+						wxMessageBox(_("Successfully decrypted data.\n") + _("Saved decrypted data to: ") + _(pgp::utils::remove_extension(filename)), _("Success!"));
+					else
+						wxMessageBox(_(res.what()), _("Error"), wxICON_ERROR);
 				}, ID_Decrypt, ID_Decrypt);
+
+			Bind(wxEVT_BUTTON, [this](wxCommandEvent&)
+				{
+					auto input_filename = _textfields[TextInput::SecretKey];
+
+					wxFileDialog openFileDialog(this, _("Open file"), "", "", _("PGP file (*.pgp)|*.pgp| All files|*"), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+
+					if (openFileDialog.ShowModal() == wxID_CANCEL)
+						return;
+
+					input_filename->SetValue(openFileDialog.GetPath());
+				}, ID_SELECT_KEYFILE, ID_SELECT_KEYFILE);
 		}
 	};
 }
