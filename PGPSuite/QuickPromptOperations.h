@@ -79,23 +79,8 @@ namespace suite
 
 					auto str_password = std::string(password->GetValue().mb_str());
 
-					/* dont forget to remove the allocated password */
 					pgp::decrypt_text(filename, "", passprovider, &str_password, std::string(key->GetValue().mb_str()));
 				}, ID_Decrypt, ID_Decrypt);
-		}
-	};
-
-	class DecryptPrompt
-		: public wxApp
-	{
-	public:
-		virtual bool OnInit()
-		{
-			DecryptFrame* frame = new DecryptFrame(argc, argv);
-			frame->SetIcon(wxIcon(_("MY_ICON")));
-			frame->CenterOnScreen(wxBOTH);
-			frame->Show(true);
-			return true;
 		}
 	};
 }
