@@ -34,7 +34,7 @@ namespace pgp::utils
     /* @brief Will remove anything after the first '.' encountered
     something.exe -> something
     some.thing.exe -> some */
-    inline std::string remove_extension(std::string& str)
+    inline std::string remove_extension(const std::string& str)
     {
         auto itr = std::find(str.begin(), str.end(), '.');
 
