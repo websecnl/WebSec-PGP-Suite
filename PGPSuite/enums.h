@@ -22,6 +22,9 @@ namespace suite
         ID_CHECK_VERSION,
         ID_STARTUP_CHECKBOX_SETTING,
 
+        /* menu's */
+        ID_REGISTER_EXTENSION,
+
         /* unused */
         ID_SAVE_FILE,
     };
