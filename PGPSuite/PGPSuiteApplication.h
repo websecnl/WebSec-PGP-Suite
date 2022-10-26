@@ -27,6 +27,7 @@
 #include "AboutDiag.h"
 #include "enums.h"
 #include "QuickPromptOperations.h"
+#include "RegUtils.h"
 
 namespace suite
 {

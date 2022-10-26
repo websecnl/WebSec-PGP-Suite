@@ -166,15 +166,11 @@ wxPanel* MyFrame::create_decrypt_page(wxBookCtrlBase* parent)
 
 wxMenuBar* MyFrame::create_menu_bar()
 {
-    wxMenu* menu_file = new wxMenu;
-    menu_file->Append(wxID_EXIT);
-
-    wxMenu* menu_help = new wxMenu;
-    menu_help->Append(wxID_ABOUT);
+    wxMenu* menu_settings = new wxMenu;
+    menu_settings->Append(ID_REGISTER_EXTENSION, _("Register .asc extension"), _("Associate .asc files with PGPSuite"));
 
     wxMenuBar* menuBar = new wxMenuBar;
-    menuBar->Append(menu_file, "&File");
-    menuBar->Append(menu_help, "&Help");
+    menuBar->Append(menu_settings, "&Settings");
 
     return menuBar;
 }
@@ -201,6 +197,25 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
     
     Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "File to decrypt", "ASC file (*.asc)|*.asc|All files|*"), ID_OPEN_ENC_FILE, ID_OPEN_ENC_FILE);
     
+    Bind(wxEVT_MENU, [](wxCommandEvent&) 
+        {
+            if (!reg::is_user_admin())
+            {
+                wxMessageBox(_("Administrator privileges are required for this action"));
+                return;
+            }
+
+            if (!reg::is_path_registered())
+                reg::register_write_path();
+
+            const auto res = reg::register_for_extension(L".asc");
+
+            if (res)
+                wxMessageBox(_("Success"), _("Successfully registered PGPSuite for .asc extension."));
+            else
+                wxMessageBox(_("Failed"), _("Failed to register PGPSuite for .asc extension."));
+        }, ID_REGISTER_EXTENSION, ID_REGISTER_EXTENSION);
+
     /* Generic passprovider to be send to the different operations, will generate appropriate prompts */
     auto passprovider = [](rnp_ffi_t, void*, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len) -> bool
     {
