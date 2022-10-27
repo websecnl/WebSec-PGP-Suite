@@ -79,6 +79,13 @@ namespace suite
 				main_sizer->Add(password_sizer, 1, wxEXPAND | wxALL ^ wxBOTTOM);
 			}
 
+			if (!info.password_protected() && !info.key_protected())
+			{
+				wxMessageBox(_("This is not a compatible .asc file."), _("Error"));
+				Destroy();
+				return;
+			}
+
 			auto button_sizer = new wxBoxSizer(wxHORIZONTAL);
 			button_sizer->Add(new wxButton(panel, ID_Decrypt, _("Decrypt")), 0, wxTOP, 15);
 			main_sizer->Add(button_sizer);
