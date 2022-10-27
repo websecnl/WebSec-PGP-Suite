@@ -16,7 +16,7 @@ namespace suite::reg
         return f.GetFullPath();
     }
 
-    inline bool register_write_path()
+    inline bool register_write_path(std::wstring name, std::wstring description, std::wstring exec_path)
     {
         HKEY  hKey, hRootKey;
         DWORD dwDisp;
@@ -24,18 +24,18 @@ namespace suite::reg
 
         wxString command(L"\"" + executable_path() + L"\" \"%1\"");
         
-        std::wstring suitepath{ suitename + L"\\shell\\open\\command" };
+        std::wstring suitepath{ name + L"\\shell\\open\\command" };
 
         nRet = ::RegCreateKeyEx(HKEY_CLASSES_ROOT, suitepath.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisp);
 
         if (nRet == ERROR_SUCCESS)
         {
             // Write the value for new document
-            ::RegOpenKeyEx(HKEY_CLASSES_ROOT, suitename.c_str(), 0, KEY_ALL_ACCESS, &hRootKey);
-            ::RegSetValueEx(hRootKey, nullptr, 0, REG_SZ, reinterpret_cast<LPBYTE>(docname.data()), (docname.size() + 1) * sizeof(std::wstring::value_type));
+            ::RegOpenKeyEx(HKEY_CLASSES_ROOT, name.c_str(), 0, KEY_ALL_ACCESS, &hRootKey);
+            ::RegSetValueEx(hRootKey, nullptr, 0, REG_SZ, reinterpret_cast<LPBYTE>(description.data()), (description.size() + 1) * sizeof(std::wstring::value_type));
             RegCloseKey(hRootKey);
 
-            ::RegSetValueEx(hKey, nullptr, 0, REG_SZ, (const LPBYTE)command.data().AsWChar(), (command.size() + 1) * sizeof(wxString::value_type));
+            ::RegSetValueEx(hKey, nullptr, 0, REG_SZ, (const LPBYTE)exec_path.data(), (command.size() + 1) * sizeof(std::wstring::value_type));
             RegCloseKey(hKey);
 
             return true;
@@ -43,6 +43,7 @@ namespace suite::reg
 
         return false;
     }
+
 
     inline bool add_context_menu_command(std::wstring exec_path, std::wstring ext, std::wstring menu_text)
     {
@@ -71,7 +72,6 @@ namespace suite::reg
         DWORD dwDisp;
         long nRet;
 
-        std::wstring suitename{ L"PGPSuite_file" };
         std::wstring suitebackup{ L"PGPSuite_backup" };
 
         nRet = ::RegCreateKeyEx(HKEY_CLASSES_ROOT, ext.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisp);
@@ -123,5 +123,16 @@ namespace suite::reg
         }
 
         return is_admin == TRUE;
+    }
+    
+    inline bool register_pgpsuite_associations()
+    {
+        wxString command(L"\"" + executable_path() + L"\" \"%1\"");
+        
+        auto a = register_write_path(suitename, docname, command.wc_str());
+        auto b = register_for_extension(L".asc");
+        auto c = add_context_menu_command(command.wc_str(), L".asc", L"Decrypt with PGPSuite");
+
+        return a && b && c;
     }
 }
