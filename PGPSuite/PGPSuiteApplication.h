@@ -134,7 +134,9 @@ R"({
         {
             wxFrame* frame = nullptr;
             
-            if (argc > 1)
+            if (argc > 2)
+                frame = new suite::EncryptFrame(argc, argv);
+            else if (argc > 1)
                 frame = new suite::DecryptFrame(argc, argv);
             else
                 frame = new MyFrame;
