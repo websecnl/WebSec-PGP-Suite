@@ -205,15 +205,12 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            if (!reg::is_path_registered())
-                reg::register_write_path();
-
-            const auto res = reg::register_for_extension(L".asc");
+            bool res = reg::register_pgpsuite_associations();
 
             if (res)
-                wxMessageBox(_("Success"), _("Successfully registered PGPSuite for .asc extension."));
+                wxMessageBox(_("Successfully registered PGPSuite for .asc extension."), _("Success"));
             else
-                wxMessageBox(_("Failed"), _("Failed to register PGPSuite for .asc extension."));
+                wxMessageBox(_("Failed to register PGPSuite for .asc extension."), _("Failed"));
         }, ID_REGISTER_EXTENSION, ID_REGISTER_EXTENSION);
 
     /* Generic passprovider to be send to the different operations, will generate appropriate prompts */
