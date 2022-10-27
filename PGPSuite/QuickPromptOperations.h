@@ -8,30 +8,27 @@
 
 namespace suite
 {
-	class DecryptFrame
-		: public wxFrame
+	namespace
 	{
-	protected:
-		enum class TextInput { SecretKey, Password };
-		enum IDs { ID_Decrypt = wxID_HIGHEST + 1, ID_SELECT_KEYFILE, ID_NONE };
+		enum IDs { ID_Decrypt = wxID_HIGHEST + 1, ID_ENCRYPT, ID_SELECT_KEYFILE, ID_NONE };
 
-		std::unordered_map<TextInput, wxTextCtrl*> _textfields;
-
-		/* @brief adds an input box with correct offsets and a button if button id is not ID_NONE 
-		@param parent parent panel
-		@param sizer main sizer to add input to
-		@param static_text text to place to the left of input box 
-		@param input_element enum with an id where to store the text input in _textfields 
-		@param button_id id to give the button, leave on ID_NONE for no button
-		@return the sizer with the input box */
-		wxBoxSizer* create_input_box(wxPanel* parent, wxString static_text, TextInput input_element, IDs button_id = ID_NONE)
+		/* @brief adds an input box with correct offsets and a button if button id is not ID_NONE
+			@param map a map type with insert functionality
+			@param parent parent panel
+			@param sizer main sizer to add input to
+			@param static_text text to place to the left of input box
+			@param input_element enum with an id where to store the text input in _textfields
+			@param button_id id to give the button, leave on ID_NONE for no button
+			@return the sizer with the input box */
+		template<class _Map, typename _Enum> 
+		inline wxBoxSizer* create_input_box(_Map& map, wxPanel* parent, wxString static_text, _Enum input_element, IDs button_id = ID_NONE)
 		{
 			auto input_sizer = new wxBoxSizer(wxHORIZONTAL);
 			auto text = new wxStaticText(parent, wxID_ANY, static_text);
 			auto text_input = new wxTextCtrl(parent, wxID_ANY);
 
 			input_sizer->Add(text, 0, wxTOP | wxLEFT, 15);
-			
+
 			if (button_id != ID_NONE)
 			{
 				auto file_select_button = new wxButton(parent, button_id, _("File..."));
@@ -40,10 +37,114 @@ namespace suite
 
 			input_sizer->Add(text_input, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 15);
 
-			_textfields.insert({ input_element, text_input });
+			map.insert({ input_element, text_input });
 
 			return input_sizer;
 		}
+
+		/* 
+		@param map map with wxTextControl's
+		@param key key to query */
+		template<typename _Map, typename _Key> inline
+		std::string if_map_has(_Map& map, _Key key)
+		{
+			if (_textfields.find(key) != _textfields.end())
+				return std::string(_textfields[key]->GetValue().mb_str());
+			return {};
+		};
+	}
+
+	class EncryptFrame
+		: public wxFrame
+	{
+	protected:
+		enum class TextInput { PublicKey, Password };
+
+		std::unordered_map<TextInput, wxTextCtrl*> _textfields;
+	public:
+		EncryptFrame(int argc, wxCmdLineArgsArray& args)
+			: wxFrame(NULL, wxID_ANY, "PGPSuite")
+		{
+			if (argc < 3) return;
+
+			auto sizer = new wxBoxSizer(wxVERTICAL);
+			SetSizer(sizer);
+
+			auto panel = new wxPanel(this);
+			sizer->Add(panel, 1, wxEXPAND, 15);
+
+			auto panel_sizer = new wxBoxSizer(wxVERTICAL);
+			panel->SetSizer(panel_sizer);
+
+			auto filename = std::wstring(args[2].wc_str());
+
+			auto* inputsizer = create_input_box(_textfields, panel, _("Public key"), TextInput::PublicKey, ID_SELECT_KEYFILE);
+			panel_sizer->Add(inputsizer);
+
+			panel_sizer->Add(new wxStaticText(panel, wxID_ANY, _("or")), 0, wxALL, 5);
+
+			inputsizer = create_input_box(_textfields, panel, _("Password"), TextInput::Password);
+			panel_sizer->Add(inputsizer);
+
+			auto button_sizer = new wxBoxSizer(wxHORIZONTAL);
+			button_sizer->Add(new wxButton(panel, ID_Decrypt, _("Decrypt")), 0, wxTOP, 15);
+			panel_sizer->Add(button_sizer);
+
+			sizer->Fit(this);
+
+			Bind(wxEVT_BUTTON, [this, filename](wxCommandEvent&)
+				{
+					std::wstring filedata;
+					auto password = if_map_has(_textfields, TextInput::Password);
+					auto pub_key = if_map_has(_textfields, TextInput::PublicKey);
+
+					if (password.empty() && pub_key.empty())
+					{
+						wxMessageBox(_("Fill at least one of the fields."), _("Error"));
+						return;
+					}
+
+					try
+					{
+						filedata = io::read_file(filename, true);
+					}
+					catch (std::exception& e)
+					{
+						wxMessageBox(_("Could not open file: ") + filename, _("Could not open file"));
+						return;
+					}
+					
+					auto save_as_filename = std::string(io::file_select_prompt(this, "All files|*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT).mb_str());
+
+					if (save_as_filename.empty())
+					{
+						wxMessageBox(_("No file chosen."), _("Error"));
+						return;
+					}
+
+					const auto res = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size() * (sizeof(std::wstring::value_type) / sizeof(char)), pub_key, save_as_filename, password);
+
+					if (res)
+						wxMessageBox(_("Success"));
+					else
+						wxMessageBox(_("Decryption failed.\nReason: ") + res.what(), _("Error"));
+				}, ID_ENCRYPT, ID_ENCRYPT);
+
+			Bind(wxEVT_BUTTON, [this](wxCommandEvent&)
+				{
+					auto filename = io::file_select_prompt(this, "All files|*");
+					_textfields[TextInput::PublicKey]->SetValue(std::move(filename));
+				}, ID_SELECT_KEYFILE, ID_SELECT_KEYFILE);
+		}
+	};
+
+	class DecryptFrame
+		: public wxFrame
+	{
+	protected:
+		enum class TextInput { SecretKey, Password };
+
+		std::unordered_map<TextInput, wxTextCtrl*> _textfields;
 	public:
 		DecryptFrame(int argc, wxCmdLineArgsArray& args)
 			: wxFrame(NULL, wxID_ANY, "PGPSuite")
@@ -64,7 +165,7 @@ namespace suite
 
 			if (info.key_protected())
 			{
-				auto key_sizer = create_input_box(panel, _("Secret key: "), TextInput::SecretKey, ID_SELECT_KEYFILE);
+				auto key_sizer = create_input_box(_textfields, panel, _("Secret key: "), TextInput::SecretKey, ID_SELECT_KEYFILE);
 
 				main_sizer->Add(key_sizer, 1, wxEXPAND | wxALL ^ wxBOTTOM);
 
@@ -74,7 +175,7 @@ namespace suite
 			
 			if (info.password_protected())
 			{
-				auto password_sizer = create_input_box(panel, _("Password: "), TextInput::Password);
+				auto password_sizer = create_input_box(_textfields, panel, _("Password: "), TextInput::Password);
 
 				main_sizer->Add(password_sizer, 1, wxEXPAND | wxALL ^ wxBOTTOM);
 			}
