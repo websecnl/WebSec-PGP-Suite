@@ -125,13 +125,18 @@ namespace suite::reg
         return is_admin == TRUE;
     }
     
+    /* 
+    @brief Registers .asc files to open with PGPSuite and adds context menu option for .asc files to decrypt with suite
+    */
     inline bool register_pgpsuite_associations()
     {
         wxString command(L"\"" + executable_path() + L"\" \"%1\"");
-        
-        auto a = register_write_path(suitename, docname, command.wc_str());
-        auto b = register_for_extension(L".asc");
-        auto c = add_context_menu_command(command.wc_str(), L".asc", L"Decrypt with PGPSuite");
+        bool a{ true }, b{ true }, c{ true };
+
+        if (!is_path_registered())
+            a = register_write_path(suitename, docname, command.wc_str());
+        b = register_for_extension(L".asc");
+        c = add_context_menu_command(command.wc_str(), L".asc", L"Decrypt with PGPSuite");
 
         return a && b && c;
     }
