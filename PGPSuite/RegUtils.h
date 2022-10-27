@@ -10,16 +10,20 @@ namespace suite::reg
     inline static std::wstring docname{ L"PGPSuite compatible file" };
     inline static std::wstring suitename{ L"PGPSuite_file" };
     
+    inline auto executable_path()
+    {
+        wxFileName f(wxStandardPaths::Get().GetExecutablePath());
+        return f.GetFullPath();
+    }
+
     inline bool register_write_path()
     {
         HKEY  hKey, hRootKey;
         DWORD dwDisp;
         long  nRet;
 
-        wxFileName f(wxStandardPaths::Get().GetExecutablePath());
-        wxString command(f.GetFullPath() + L" %1");
+        wxString command(L"\"" + executable_path() + L"\" \"%1\"");
         
-        // std::wstring command{ L"C:\\Users\\Koen\\source\\repos\\PGPSuite\\x64\\Release\\ver_alpha\\PGPSuite.exe %1" };
         std::wstring suitepath{ suitename + L"\\shell\\open\\command" };
 
         nRet = ::RegCreateKeyEx(HKEY_CLASSES_ROOT, suitepath.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisp);
@@ -35,6 +39,27 @@ namespace suite::reg
             RegCloseKey(hKey);
 
             return true;
+        }
+
+        return false;
+    }
+
+    inline bool add_context_menu_command(std::wstring exec_path, std::wstring ext, std::wstring menu_text)
+    {
+        HKEY key{};
+        DWORD disp{};
+        long ret_val{};
+        
+        ret_val = RegOpenKeyExW(HKEY_CLASSES_ROOT, L"SystemFileAssociations", 0, KEY_ALL_ACCESS, &key);
+
+        if (ret_val == ERROR_SUCCESS)
+        {
+            const auto command_path = ext + L"\\Shell\\" + menu_text + L"\\command";
+            
+            RegCreateKeyExW(key, command_path.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
+            ret_val = RegSetValueExW(key, nullptr, 0, REG_SZ, (const LPBYTE)exec_path.data(), (exec_path.size() + 1) * sizeof(std::wstring::value_type));
+
+            return ret_val == ERROR_SUCCESS;
         }
 
         return false;
