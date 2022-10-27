@@ -17,4 +17,15 @@ namespace io
     
         return dialog.GetValue();
     }
+
+    /* Spawn file selection window */
+    inline wxString file_select_prompt(wxWindow* parent, const char* wildcard = "All files|*", long style = wxFD_OPEN | wxFD_FILE_MUST_EXIST)
+    {
+        wxFileDialog openFileDialog(parent, _("Open file"), "", "", _(wildcard), style);
+
+        if (openFileDialog.ShowModal() == wxID_CANCEL)
+            return _("");
+
+        return openFileDialog.GetPath();
+    }
 }
