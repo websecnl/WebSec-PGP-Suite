@@ -28,4 +28,21 @@ namespace io
 
         return openFileDialog.GetPath();
     }
+
+    /* specialized functions for retrieving items from wx containers */
+    template<typename _Type> inline
+    wxString wxget_value(_Type* of) { return _(""); }
+
+    template<> inline
+    wxString wxget_value<wxTextCtrl>(wxTextCtrl* ctrl)
+    {
+        return ctrl->GetValue();
+    }
+
+    template<> inline
+    wxString wxget_value<wxChoice>(wxChoice* ctrl)
+    {
+        const auto sel = ctrl->GetSelection();
+        return ctrl->GetString(sel);
+    }
 }
