@@ -46,8 +46,8 @@ namespace suite::reg
         return false;
     }
 
-    /* adds context menu command for all files */
-    inline bool add_context_menu_command(std::wstring exec_path, std::wstring menu_text)
+    /* adds context menu command for all files, if use icon is an empty string it wont be constructed */
+    inline bool add_context_menu_command(std::wstring exec_path, std::wstring menu_text, std::wstring use_icon)
     {
         HKEY key{};
         DWORD disp{};
@@ -57,8 +57,14 @@ namespace suite::reg
 
         if (ret_val == ERROR_SUCCESS)
         {
-            const auto command_path = menu_text + L"\\command";
-            RegCreateKeyExW(key, command_path.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
+            /* create menutext key with value for icon */
+            RegCreateKeyExW(key, menu_text.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
+            
+            if (!use_icon.empty())
+                ret_val = RegSetValueExW(key, L"Icon", 0, REG_SZ, (const LPBYTE)use_icon.data(), (use_icon.size() + 1) * sizeof(std::wstring::value_type));
+
+            /* create command to run when user clicks the command */
+            RegCreateKeyExW(key, L"\\command", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
             ret_val = RegSetValueExW(key, nullptr, 0, REG_SZ, (const LPBYTE)exec_path.data(), (exec_path.size() + 1) * sizeof(std::wstring::value_type));
             
             RegCloseKey(key);
@@ -71,25 +77,85 @@ namespace suite::reg
         return false;
     }
 
-    /* adds context menu command for files with extension ext */
-    inline bool add_context_menu_command(std::wstring exec_path, std::wstring ext, std::wstring menu_text)
+    /* adds context menu command for files with extension ext, if use icon is an empty string it wont be constructed */
+    inline bool add_context_menu_command(std::wstring exec_path, std::wstring ext, std::wstring menu_text, std::wstring use_icon)
+    {
+        HKEY key{};
+        DWORD disp{};
+        long ret_val{};
+
+        ret_val = RegOpenKeyExW(HKEY_CLASSES_ROOT, L"SystemFileAssociations", 0, KEY_ALL_ACCESS, &key);
+
+        if (ret_val == ERROR_SUCCESS)
+        {
+            const auto command_text = ext + L"\\Shell\\" + menu_text;
+
+            /* create menutext key with value for icon */
+            RegCreateKeyExW(key, command_text.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
+            
+            if (!use_icon.empty())
+                ret_val = RegSetValueExW(key, L"Icon", 0, REG_SZ, (const LPBYTE)use_icon.data(), (use_icon.size() + 1) * sizeof(std::wstring::value_type));
+
+            /* create command to run when user clicks the command */
+            RegCreateKeyExW(key, L"\\command", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
+            ret_val = RegSetValueExW(key, nullptr, 0, REG_SZ, (const LPBYTE)exec_path.data(), (exec_path.size() + 1) * sizeof(std::wstring::value_type));
+            
+            RegCloseKey(key);
+
+            return ret_val == ERROR_SUCCESS;
+        }
+
+        RegCloseKey(key);
+
+        return false;
+    }
+
+    /* remove context menu command for files with extension ext */
+    inline bool remove_context_menu_command(std::wstring menu_text, std::wstring ext)
+    {
+        HKEY key{};
+        DWORD disp{};
+        long ret_val{};
+
+        ret_val = RegOpenKeyExW(HKEY_CLASSES_ROOT, L"SystemFileAssociations", 0, KEY_ALL_ACCESS, &key);
+
+        /* could remove recursively but can already see that going wrong so hardcoded it will be */
+        auto command = L"\\SystemFileAssociations\\" + ext + L"\\Shell\\" + menu_text + L"\\command";
+        auto command_text = L"\\SystemFileAssociations\\" + ext + L"\\Shell\\" + menu_text;
+        if (ret_val == ERROR_SUCCESS)
+        {
+            RegDeleteKey(HKEY_CLASSES_ROOT, command.c_str());
+            RegDeleteKey(HKEY_CLASSES_ROOT, command_text.c_str());
+
+            RegCloseKey(key);
+
+            return true;
+        }
+
+        RegCloseKey(key);
+
+        return false;
+    }
+
+    /* remove context menu command for all files */
+    inline bool remove_context_menu_command(std::wstring menu_text)
     {
         HKEY key{};
         DWORD disp{};
         long ret_val{};
         
-        ret_val = RegOpenKeyExW(HKEY_CLASSES_ROOT, L"SystemFileAssociations", 0, KEY_ALL_ACCESS, &key);
-
+        auto command = L"\\*\\shell\\" + menu_text + L"\\command";
+        auto command_text = L"\\*\\shell\\" + menu_text;
+        ret_val = RegOpenKeyExW(HKEY_CLASSES_ROOT, command.c_str(), 0, KEY_ALL_ACCESS, &key);
+        
         if (ret_val == ERROR_SUCCESS)
         {
-            const auto command_path = ext + L"\\Shell\\" + menu_text + L"\\command";
+            RegDeleteKey(HKEY_CLASSES_ROOT, command.c_str());
+            RegDeleteKey(HKEY_CLASSES_ROOT, command_text.c_str());
             
-            RegCreateKeyExW(key, command_path.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
-            ret_val = RegSetValueExW(key, nullptr, 0, REG_SZ, (const LPBYTE)exec_path.data(), (exec_path.size() + 1) * sizeof(std::wstring::value_type));
-
             RegCloseKey(key);
 
-            return ret_val == ERROR_SUCCESS;
+            return true;
         }
         
         RegCloseKey(key);
@@ -161,14 +227,25 @@ namespace suite::reg
     */
     inline bool register_pgpsuite_associations()
     {
-        wxString command(L"\"" + executable_path() + L"\" \"%1\"");
-        bool a{ true }, b{ true }, c{ true };
+        wxString base_command(L"\"" + executable_path() + L"\"");
+        wxString perc1 = L" \"%1\"";
+        wxString no_arg_command = base_command + perc1;
+        wxString arg_command = base_command + L" \"-e\"" + perc1;
+
+        bool a{ true }, b{ true }, c{ true }, d{ true };
 
         if (!is_path_registered())
-            a = register_write_path(suitename, docname, command.wc_str());
+            a = register_write_path(suitename, docname, no_arg_command.wc_str());
         b = register_for_extension(L".asc");
-        c = add_context_menu_command(command.wc_str(), L".asc", L"Decrypt with PGPSuite");
+        c = add_context_menu_command(arg_command.wc_str(), L"Encrypt with PGPSuite", L"a");
+        d = add_context_menu_command(no_arg_command.wc_str(), L".asc", L"Decrypt with PGPSuite", L"a");
 
         return a && b && c;
+    }
+
+    inline void remove_pgpsuite_associations()
+    {
+        remove_context_menu_command(L"Encrypt with PGPSuite");
+        remove_context_menu_command(L"Decrypt with PGPSuite", L".asc");
     }
 }
