@@ -4,6 +4,7 @@
 #include <wx/wxprec.h>
 #include "rnp_wrappers.h"
 #include "PGPDecrypt.h"
+#include <wx/statline.h>
 #include <unordered_map>
 
 namespace suite
@@ -148,6 +149,8 @@ namespace suite
 			auto button_sizer = new wxBoxSizer(wxHORIZONTAL);
 			button_sizer->Add(new wxButton(panel, ID_ENCRYPT, _("Encrypt")), 0, wxTOP, 15);
 			panel_sizer->Add(button_sizer);
+			
+			panel_sizer->Add(new wxStaticText(panel, wxID_ANY, _(L"©WebSec B.V. - All rights reserved")), 1, wxALIGN_CENTER_HORIZONTAL | wxTOP, 15);
 
 			sizer->Fit(this);
 
@@ -272,6 +275,8 @@ namespace suite
 			button_sizer->Add(new wxButton(panel, ID_Decrypt, _("Decrypt")), 0, wxTOP, 15);
 			main_sizer->Add(button_sizer);
 			
+			main_sizer->Add(new wxStaticText(panel, wxID_ANY, _(L"©WebSec B.V. - All rights reserved")), 1, wxALIGN_CENTER_HORIZONTAL | wxTOP, 15);
+
 			sizer->Fit(this);
 
 			auto passprovider = [](rnp_ffi_t, void* context, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len)
