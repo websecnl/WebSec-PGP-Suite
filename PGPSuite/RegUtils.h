@@ -64,7 +64,7 @@ namespace suite::reg
                 ret_val = RegSetValueExW(key, L"Icon", 0, REG_SZ, (const LPBYTE)use_icon.data(), (use_icon.size() + 1) * sizeof(std::wstring::value_type));
 
             /* create command to run when user clicks the command */
-            RegCreateKeyExW(key, L"\\command", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
+            RegCreateKeyExW(key, L"command", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
             ret_val = RegSetValueExW(key, nullptr, 0, REG_SZ, (const LPBYTE)exec_path.data(), (exec_path.size() + 1) * sizeof(std::wstring::value_type));
             
             RegCloseKey(key);
@@ -97,7 +97,7 @@ namespace suite::reg
                 ret_val = RegSetValueExW(key, L"Icon", 0, REG_SZ, (const LPBYTE)use_icon.data(), (use_icon.size() + 1) * sizeof(std::wstring::value_type));
 
             /* create command to run when user clicks the command */
-            RegCreateKeyExW(key, L"\\command", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
+            RegCreateKeyExW(key, L"command", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
             ret_val = RegSetValueExW(key, nullptr, 0, REG_SZ, (const LPBYTE)exec_path.data(), (exec_path.size() + 1) * sizeof(std::wstring::value_type));
             
             RegCloseKey(key);
@@ -227,6 +227,7 @@ namespace suite::reg
     */
     inline bool register_pgpsuite_associations()
     {
+        wxString icon_path = executable_path() + L",0";
         wxString base_command(L"\"" + executable_path() + L"\"");
         wxString perc1 = L" \"%1\"";
         wxString no_arg_command = base_command + perc1;
@@ -237,8 +238,8 @@ namespace suite::reg
         if (!is_path_registered())
             a = register_write_path(suitename, docname, no_arg_command.wc_str());
         b = register_for_extension(L".asc");
-        c = add_context_menu_command(arg_command.wc_str(), L"Encrypt with PGPSuite", L"a");
-        d = add_context_menu_command(no_arg_command.wc_str(), L".asc", L"Decrypt with PGPSuite", L"a");
+        c = add_context_menu_command(arg_command.wc_str(), L"Encrypt with PGPSuite", icon_path.wc_str());
+        d = add_context_menu_command(no_arg_command.wc_str(), L".asc", L"Decrypt with PGPSuite", icon_path.wc_str());
 
         return a && b && c;
     }
