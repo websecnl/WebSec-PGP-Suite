@@ -40,11 +40,38 @@ namespace suite::reg
 
             return true;
         }
+        
+        RegCloseKey(hKey);
 
         return false;
     }
 
+    /* adds context menu command for all files */
+    inline bool add_context_menu_command(std::wstring exec_path, std::wstring menu_text)
+    {
+        HKEY key{};
+        DWORD disp{};
+        long ret_val{};
 
+        ret_val = RegOpenKeyExW(HKEY_CLASSES_ROOT, L"*\\shell", 0, KEY_ALL_ACCESS, &key);
+
+        if (ret_val == ERROR_SUCCESS)
+        {
+            const auto command_path = menu_text + L"\\command";
+            RegCreateKeyExW(key, command_path.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
+            ret_val = RegSetValueExW(key, nullptr, 0, REG_SZ, (const LPBYTE)exec_path.data(), (exec_path.size() + 1) * sizeof(std::wstring::value_type));
+            
+            RegCloseKey(key);
+
+            return ret_val == ERROR_SUCCESS;
+        }
+
+        RegCloseKey(key);
+
+        return false;
+    }
+
+    /* adds context menu command for files with extension ext */
     inline bool add_context_menu_command(std::wstring exec_path, std::wstring ext, std::wstring menu_text)
     {
         HKEY key{};
@@ -60,8 +87,12 @@ namespace suite::reg
             RegCreateKeyExW(key, command_path.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, &disp);
             ret_val = RegSetValueExW(key, nullptr, 0, REG_SZ, (const LPBYTE)exec_path.data(), (exec_path.size() + 1) * sizeof(std::wstring::value_type));
 
+            RegCloseKey(key);
+
             return ret_val == ERROR_SUCCESS;
         }
+        
+        RegCloseKey(key);
 
         return false;
     }
