@@ -10,7 +10,25 @@ namespace suite
 {
 	namespace
 	{
-		enum IDs { ID_Decrypt = wxID_HIGHEST + 1, ID_ENCRYPT, ID_SELECT_KEYFILE, ID_NONE };
+		enum IDs { ID_Decrypt = wxID_HIGHEST + 1, ID_ENCRYPT, ID_SELECT_KEYFILE, ID_CLEAR_PUBKEY, ID_NONE };	
+
+		/* @brief Helper function to create a type _Item with a static string to the left
+		* @param static_text the static text to be set to the left of the item
+		* @param args the arguments of which _Item will be constructed
+		* @return the sizer with the static text and a the constructed item
+		*/
+		template<typename _Item, typename ... _Args>
+		inline std::pair<wxBoxSizer*, _Item*> create_formatted_item_with_text(wxPanel* parent, wxString static_text, _Args&&... args)
+		{
+			auto sizer = new wxBoxSizer(wxHORIZONTAL);
+			auto text = new wxStaticText(parent, wxID_ANY, static_text);
+			auto item = new _Item(std::forward<_Args>(args)...);
+
+			sizer->Add(text, 0, wxTOP | wxLEFT, 15);
+			sizer->Add(item, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 15);
+
+			return { sizer, item };
+		}
 
 		/* @brief adds an input box with correct offsets and a button if button id is not ID_NONE
 			@param map a map type with insert functionality
@@ -48,17 +66,49 @@ namespace suite
 		template<typename _Map, typename _Key> inline
 		std::string if_map_has(_Map& map, _Key key)
 		{
-			if (_textfields.find(key) != _textfields.end())
-				return std::string(_textfields[key]->GetValue().mb_str());
+			if (map.find(key) != map.end())
+				return std::string(map[key]->GetValue().mb_str());
 			return {};
 		};
+
+		inline bool add_keys_to_choice(std::string pubkey_fname, wxChoice* choices)
+		{
+			rnp::FFI ffi("GPG", "GPG");
+			rnp::Input key_input{};
+			rnp_key_handle_t key{};
+			rnp_identifier_iterator_t it{};
+			wxArrayString keyids{};
+			char* keyid{nullptr};
+			
+			key_input.set_input_from_path(std::move(pubkey_fname));
+			if (auto res = rnp_load_keys(ffi, "GPG", key_input, RNP_LOAD_SAVE_PUBLIC_KEYS) != RNP_SUCCESS) return false;
+			
+			rnp_identifier_iterator_create(ffi, &it, "userid");
+			while (true)
+			{
+				auto res = rnp_identifier_iterator_next(it, (const char**)&keyid);
+				
+				if (res != RNP_SUCCESS) return false;
+				if (keyid == NULL) break;
+
+				keyids.Add(_(keyid));
+			}
+
+			choices->Set(keyids);
+
+			rnp_key_handle_destroy(key);
+			rnp_buffer_destroy(keyid);
+			rnp_identifier_iterator_destroy(it);
+
+			return true;
+		}
 	}
 
 	class EncryptFrame
 		: public wxFrame
 	{
 	protected:
-		enum class TextInput { PublicKey, Password };
+		enum class TextInput { PublicKey, KeyID, Password };
 
 		std::unordered_map<TextInput, wxTextCtrl*> _textfields;
 	public:
@@ -69,7 +119,7 @@ namespace suite
 
 			auto sizer = new wxBoxSizer(wxVERTICAL);
 			SetSizer(sizer);
-
+			
 			auto panel = new wxPanel(this);
 			sizer->Add(panel, 1, wxEXPAND, 15);
 
@@ -80,6 +130,15 @@ namespace suite
 
 			auto* inputsizer = create_input_box(_textfields, panel, _("Public key"), TextInput::PublicKey, ID_SELECT_KEYFILE);
 			panel_sizer->Add(inputsizer);
+			
+			inputsizer->Add(new wxButton(panel, ID_CLEAR_PUBKEY, _("Clear")), 0, wxTOP | wxLEFT, 15);
+
+			auto [choicesizer, choice] = create_formatted_item_with_text<wxChoice>(panel, _("KeyID"), panel, ID_KEYID_SELECTION);
+			panel_sizer->Add(choicesizer);
+			choice->Disable();
+
+			//inputsizer = create_input_box(_textfields, panel, _("KeyID"), TextInput::KeyID);
+			//panel_sizer->Add(inputsizer);
 
 			panel_sizer->Add(new wxStaticText(panel, wxID_ANY, _("or")), 0, wxALL, 5);
 
@@ -87,20 +146,20 @@ namespace suite
 			panel_sizer->Add(inputsizer);
 
 			auto button_sizer = new wxBoxSizer(wxHORIZONTAL);
-			button_sizer->Add(new wxButton(panel, ID_Decrypt, _("Decrypt")), 0, wxTOP, 15);
+			button_sizer->Add(new wxButton(panel, ID_ENCRYPT, _("Encrypt")), 0, wxTOP, 15);
 			panel_sizer->Add(button_sizer);
 
 			sizer->Fit(this);
 
-			Bind(wxEVT_BUTTON, [this, filename](wxCommandEvent&)
+			Bind(wxEVT_BUTTON, [this, filename, choice](wxCommandEvent&)
 				{
 					std::wstring filedata;
 					auto password = if_map_has(_textfields, TextInput::Password);
 					auto pub_key = if_map_has(_textfields, TextInput::PublicKey);
-
-					if (password.empty() && pub_key.empty())
+					
+					if (password.empty() && pub_key.empty() && choice->IsEmpty())
 					{
-						wxMessageBox(_("Fill at least one of the fields."), _("Error"));
+						wxMessageBox(_("Please provide a public key and keyid, password or both."), _("Error"));
 						return;
 					}
 
@@ -122,18 +181,40 @@ namespace suite
 						return;
 					}
 
-					const auto res = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size() * (sizeof(std::wstring::value_type) / sizeof(char)), pub_key, save_as_filename, password);
+					wxString keyid = choice->IsEmpty() ? _("") : io::wxget_value<wxChoice>(choice);
+					const auto res = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size() * (sizeof(std::wstring::value_type) / sizeof(char)), pub_key, std::string(keyid.mbc_str()), save_as_filename + ".asc", password);
 
 					if (res)
 						wxMessageBox(_("Success"));
 					else
-						wxMessageBox(_("Decryption failed.\nReason: ") + res.what(), _("Error"));
+						wxMessageBox(_("Encryption failed.\nReason: ") + res.what(), _("Error"));
 				}, ID_ENCRYPT, ID_ENCRYPT);
 
-			Bind(wxEVT_BUTTON, [this](wxCommandEvent&)
+			Bind(wxEVT_BUTTON, [this, choice](wxCommandEvent&)
 				{
-					auto filename = io::file_select_prompt(this, "All files|*");
+					choice->Clear();
+					choice->Disable();
+					_textfields[TextInput::PublicKey]->Clear();
+				}, ID_CLEAR_PUBKEY, ID_CLEAR_PUBKEY);
+
+			Bind(wxEVT_BUTTON, [this, choice](wxCommandEvent&)
+				{
+					auto filename = io::file_select_prompt(this, "PGP file (*.pgp)|*.pgp| All files|*");
+
+					if (filename.empty()) return; /* operation was cancelled */
+					
+					choice->Clear();
+					choice->Disable();
+					_textfields[TextInput::PublicKey]->Clear();
+					if (!add_keys_to_choice(std::string(filename.mbc_str()), choice))
+					{
+						wxMessageBox(_("Failed opening key."), _("Error"));
+						return;
+					}
+
 					_textfields[TextInput::PublicKey]->SetValue(std::move(filename));
+					choice->Enable();
+					choice->SetSelection(0);
 				}, ID_SELECT_KEYFILE, ID_SELECT_KEYFILE);
 		}
 	};
