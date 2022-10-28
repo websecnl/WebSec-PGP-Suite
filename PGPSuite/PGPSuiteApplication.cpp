@@ -168,6 +168,7 @@ wxMenuBar* MyFrame::create_menu_bar()
 {
     wxMenu* menu_settings = new wxMenu;
     menu_settings->Append(ID_REGISTER_EXTENSION, _("Register .asc extension"), _("Associate .asc files with PGPSuite"));
+    menu_settings->Append(ID_UNREGISTER_EXTENSION, _("Unregister .asc extension"), _("Remove .asc file associations with PGPSuite"));
 
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menu_settings, "&Settings");
@@ -212,6 +213,19 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             else
                 wxMessageBox(_("Failed to register PGPSuite for .asc extension."), _("Failed"));
         }, ID_REGISTER_EXTENSION, ID_REGISTER_EXTENSION);
+
+    Bind(wxEVT_MENU, [](wxCommandEvent&)
+        {
+            if (!reg::is_user_admin())
+            {
+                wxMessageBox(_("Administrator privileges are required for this action"));
+                return;
+            }
+            
+            reg::remove_pgpsuite_associations();
+
+            wxMessageBox(_("Successfully removed PGPSuite for .asc extension."), _("Success"));
+        }, ID_UNREGISTER_EXTENSION, ID_UNREGISTER_EXTENSION);
 
     /* Generic passprovider to be send to the different operations, will generate appropriate prompts */
     auto passprovider = [](rnp_ffi_t, void*, rnp_key_handle_t, const char* pgp_context, char buf[], size_t buf_len) -> bool
