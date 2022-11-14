@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include <vector>
 
 namespace io
 {
@@ -35,6 +36,20 @@ namespace io
     inline std::wstring read_file(const std::wstring& filename, bool file_has_to_exist = false)
     {
         return read_file<std::wstring, std::wifstream, std::wstringstream>(filename, file_has_to_exist);
+    }
+
+    template<typename _String>
+    inline std::vector<char> read_file_bytes(const _String& filename)
+    {
+        auto filestream = std::ifstream(filename, std::ios::binary | std::ios::ate);
+        auto file_position = filestream.tellg();
+
+        auto bytes = std::vector<char>(file_position);
+
+        filestream.seekg(0, std::ios::beg);
+        filestream.read(&bytes[0], file_position);
+
+        return bytes;
     }
 
     template<typename... _Args> inline
