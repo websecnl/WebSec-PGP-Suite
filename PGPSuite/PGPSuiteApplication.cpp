@@ -307,13 +307,14 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            std::wstring filename = std::wstring(data.wc_str()), filedata{};
+            std::wstring filename = std::wstring(data.wc_str());
+            auto filedata = std::vector<char>{};
 
             if (_enc_mode == EncMode::File)
             { /* data is to be interpreted as file */
                 try
                 {
-                    filedata = io::read_file(filename, true);
+                    filedata = io::read_file_bytes(filename);
                 }
                 catch (std::exception& e)
                 {
@@ -323,7 +324,8 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             }
             else if (_enc_mode == EncMode::Text)
             { /* data is to be interpreted as string */
-                filedata = std::wstring(data.wc_str());
+                auto* start = (const char*)data.wc_str();
+                std::copy(start, start + data.size() * 2, std::back_inserter(filedata));
             }
             
             wxFileDialog fileDialog(this, _("Save encrypted data to"), "", _("message"), "ASC files(*.asc) | *.asc | All files | *", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
@@ -334,7 +336,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            const auto success = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size() * (sizeof(wchar_t) / sizeof(uint8_t)), 
+            const auto success = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size(), 
                 std::string(pubkey.mb_str()), std::string(keyID.mb_str()), std::string(fileDialog.GetPath().mb_str()), std::string(password.mb_str()));
 
             if (success)

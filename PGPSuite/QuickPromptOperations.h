@@ -12,6 +12,7 @@ namespace suite
 	namespace
 	{
 		enum IDs { ID_Decrypt = wxID_HIGHEST + 1, ID_ENCRYPT, ID_SELECT_KEYFILE, ID_CLEAR_PUBKEY, ID_NONE };	
+		static constexpr int text_width{ 125 };
 
 		/* @brief Helper function to create a type _Item with a static string to the left
 		* @param static_text the static text to be set to the left of the item
@@ -27,6 +28,7 @@ namespace suite
 
 			sizer->Add(text, 0, wxTOP | wxLEFT, 15);
 			sizer->Add(item, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 15);
+			text->SetMinSize(wxSize(text_width, text->GetMinSize().y));
 
 			return { sizer, item };
 		}
@@ -40,7 +42,7 @@ namespace suite
 			@param button_id id to give the button, leave on ID_NONE for no button
 			@return the sizer with the input box */
 		template<class _Map, typename _Enum> 
-		inline wxBoxSizer* create_input_box(_Map& map, wxPanel* parent, wxString static_text, _Enum input_element, IDs button_id = ID_NONE)
+		inline wxBoxSizer* create_input_box(_Map& map, wxPanel* parent, wxString static_text, _Enum input_element, wxButton* button = nullptr)
 		{
 			auto input_sizer = new wxBoxSizer(wxHORIZONTAL);
 			auto text = new wxStaticText(parent, wxID_ANY, static_text);
@@ -48,15 +50,16 @@ namespace suite
 
 			input_sizer->Add(text, 0, wxTOP | wxLEFT, 15);
 
-			if (button_id != ID_NONE)
+			if (button != nullptr)
 			{
-				auto file_select_button = new wxButton(parent, button_id, _("File..."));
-				input_sizer->Add(file_select_button, 0, wxTOP | wxLEFT, 15);
+				input_sizer->Add(button, 0, wxTOP | wxLEFT, 15);
 			}
 
 			input_sizer->Add(text_input, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 15);
 
 			map.insert({ input_element, text_input });
+
+			text->SetMinSize(wxSize(text_width, text->GetMinSize().y));
 
 			return input_sizer;
 		}
@@ -129,17 +132,14 @@ namespace suite
 
 			auto filename = std::wstring(args[2].wc_str());
 
-			auto* inputsizer = create_input_box(_textfields, panel, _("Public key"), TextInput::PublicKey, ID_SELECT_KEYFILE);
-			panel_sizer->Add(inputsizer);
-			
-			inputsizer->Add(new wxButton(panel, ID_CLEAR_PUBKEY, _("Clear")), 0, wxTOP | wxLEFT, 15);
+			auto* clear_file_button = new wxButton(panel, ID_SELECT_KEYFILE, _("File..."));
+			auto* inputsizer = create_input_box(_textfields, panel, _("Public key"), TextInput::PublicKey, clear_file_button);
+			panel_sizer->Add(inputsizer);	
 
 			auto [choicesizer, choice] = create_formatted_item_with_text<wxChoice>(panel, _("KeyID"), panel, ID_KEYID_SELECTION);
 			panel_sizer->Add(choicesizer);
+			panel_sizer->Hide(choicesizer, true);
 			choice->Disable();
-
-			//inputsizer = create_input_box(_textfields, panel, _("KeyID"), TextInput::KeyID);
-			//panel_sizer->Add(inputsizer);
 
 			panel_sizer->Add(new wxStaticText(panel, wxID_ANY, _("or")), 0, wxALL, 5);
 
@@ -153,10 +153,11 @@ namespace suite
 			panel_sizer->Add(new wxStaticText(panel, wxID_ANY, _(L"©WebSec B.V. - All rights reserved")), 1, wxALIGN_CENTER_HORIZONTAL | wxTOP, 15);
 
 			sizer->Fit(this);
+			Layout();
 
 			Bind(wxEVT_BUTTON, [this, filename, choice](wxCommandEvent&)
 				{
-					std::wstring filedata;
+					auto filedata = std::vector<char>{};
 					auto password = if_map_has(_textfields, TextInput::Password);
 					auto pub_key = if_map_has(_textfields, TextInput::PublicKey);
 					
@@ -168,7 +169,7 @@ namespace suite
 
 					try
 					{
-						filedata = io::read_file(filename, true);
+						filedata = io::read_file_bytes(filename);
 					}
 					catch (std::exception& e)
 					{
@@ -185,7 +186,7 @@ namespace suite
 					}
 
 					wxString keyid = choice->IsEmpty() ? _("") : io::wxget_value<wxChoice>(choice);
-					const auto res = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size() * (sizeof(std::wstring::value_type) / sizeof(char)), pub_key, std::string(keyid.mbc_str()), save_as_filename + ".asc", password);
+					const auto res = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size(), pub_key, std::string(keyid.mbc_str()), save_as_filename + ".asc", password);
 
 					if (res)
 						wxMessageBox(_("Success"));
@@ -193,14 +194,16 @@ namespace suite
 						wxMessageBox(_("Encryption failed.\nReason: ") + res.what(), _("Error"));
 				}, ID_ENCRYPT, ID_ENCRYPT);
 
-			Bind(wxEVT_BUTTON, [this, choice](wxCommandEvent&)
+			Bind(wxEVT_BUTTON, [this, clear_file_button, choice, panel_sizer, choicesizer](wxCommandEvent&)
 				{
 					choice->Clear();
 					choice->Disable();
 					_textfields[TextInput::PublicKey]->Clear();
+					clear_file_button->SetLabelText(_("File..."));
+					clear_file_button->SetId(ID_SELECT_KEYFILE);
 				}, ID_CLEAR_PUBKEY, ID_CLEAR_PUBKEY);
 
-			Bind(wxEVT_BUTTON, [this, choice](wxCommandEvent&)
+			Bind(wxEVT_BUTTON, [this, clear_file_button, choice, panel_sizer, choicesizer](wxCommandEvent& e)
 				{
 					auto filename = io::file_select_prompt(this, "PGP file (*.pgp)|*.pgp| All files|*");
 
@@ -212,12 +215,22 @@ namespace suite
 					if (!add_keys_to_choice(std::string(filename.mbc_str()), choice))
 					{
 						wxMessageBox(_("Failed opening key."), _("Error"));
+
+						if (panel_sizer->IsShown(choicesizer))
+						{
+							panel_sizer->Hide(choicesizer, true);
+							Layout();
+						}
 						return;
 					}
-
+										
+					panel_sizer->Show(choicesizer, true);
 					_textfields[TextInput::PublicKey]->SetValue(std::move(filename));
 					choice->Enable();
 					choice->SetSelection(0);
+					clear_file_button->SetLabelText(_("Clear"));
+					clear_file_button->SetId(ID_CLEAR_PUBKEY);
+					Layout();
 				}, ID_SELECT_KEYFILE, ID_SELECT_KEYFILE);
 		}
 	};
@@ -249,7 +262,7 @@ namespace suite
 
 			if (info.key_protected())
 			{
-				auto key_sizer = create_input_box(_textfields, panel, _("Secret key: "), TextInput::SecretKey, ID_SELECT_KEYFILE);
+				auto key_sizer = create_input_box(_textfields, panel, _("Secret key: "), TextInput::SecretKey, new wxButton(panel, ID_SELECT_KEYFILE, _("file...")));
 
 				main_sizer->Add(key_sizer, 1, wxEXPAND | wxALL ^ wxBOTTOM);
 
