@@ -33,17 +33,16 @@ namespace pgp::utils
 
     /* @brief Will remove anything after the first '.' encountered
     something.exe -> something
-    some.thing.exe -> some */
+    some.thing.exe -> some.thing */
     inline std::string remove_extension(const std::string& str)
     {
-        auto itr = std::find(str.begin(), str.end(), '.');
+        auto pos = str.find_last_of('.');
 
-        /* return str if '.' not found */
-        if (itr == str.end()) return str;
-        /* if the '.' was a the start then just return 'a' default value */
-        if (itr == str.begin()) return "a";
+        /* return str if '.' not found
+            if the '.' was at the start then just return the string */
+        if (pos == str.npos || pos == 0) return str;
 
-        return std::string(str.begin(), itr);
+        return str.substr(0, pos);
     }
 
     /* Check if the given string contains only ascii characters */
