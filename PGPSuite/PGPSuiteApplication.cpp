@@ -291,7 +291,8 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
             auto data = _input_fields["File to encrypt"]->GetValue();
             auto keyID = _input_fields["KeyID of recipient"]->GetValue();
             auto password = _input_fields["Password(optional)"]->GetValue();
-                        
+            auto save_to = std::string{};
+
             if (!all_filled(data))
             {
                 wxMessageBox(_("Provide data to encrypt."), _("Encryption failed"), wxICON_ERROR);
@@ -321,23 +322,27 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                     wxMessageBox(_("Could not open file: ") + data, _("Could not open file"));
                     return;
                 }
+                
+                save_to = pgp::utils::utf8_encode(filename) + ".asc";
             }
             else if (_enc_mode == EncMode::Text)
             { /* data is to be interpreted as string */
                 auto* start = (const char*)data.wc_str();
                 std::copy(start, start + data.size() * 2, std::back_inserter(filedata));
-            }
-            
-            wxFileDialog fileDialog(this, _("Save encrypted data to"), "", _("message"), "ASC files(*.asc) | *.asc | All files | *", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
-            if (fileDialog.ShowModal() == wxID_CANCEL)
-            {
-                wxMessageBox(_("No file selected to save data to"), _("Encryption failed"));
-                return;
+                wxFileDialog fileDialog(this, _("Save encrypted data to"), "", _("message"), "ASC files(*.asc) | *.asc | All files | *", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+                if (fileDialog.ShowModal() == wxID_CANCEL)
+                {
+                    wxMessageBox(_("No file selected to save data to"), _("Encryption failed"));
+                    return;
+                }
+
+                save_to = std::string(fileDialog.GetPath().mb_str());
             }
 
             const auto success = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size(), 
-                std::string(pubkey.mb_str()), std::string(keyID.mb_str()), std::string(fileDialog.GetPath().mb_str()), std::string(password.mb_str()));
+                std::string(pubkey.mb_str()), std::string(keyID.mb_str()), save_to, std::string(password.mb_str()));
 
             if (success)
                 wxMessageBox(_("Successfully encrypted data."), _("Success!"));
@@ -358,27 +363,9 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
                 return;
             }
 
-            std::string filename = std::string(file.mb_str()), filedata{};
-
-            try
-            {
-                filedata = io::read_file(filename, true);
-            }
-            catch (std::exception& e)
-            {
-                wxMessageBox(_("Could not open file: ") + file, _("Could not open file"));
-                return;
-            }
-
-            wxFileDialog fileDialog(this, _("Save decrypted data to"), "", _("message"), "All files|*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-
-            if (fileDialog.ShowModal() == wxID_CANCEL)
-            {
-                wxMessageBox(_("No file selected to save data to"), _("Decryption failed"));
-                return;
-            }
-
-            const auto success = pgp::decrypt_text(std::string(file.mb_str()), "", passprovider, NULL, std::string(seckey.mb_str()));
+            std::string filename = std::string(file.mb_str());
+            
+            const auto success = pgp::decrypt_text(filename, "", passprovider, NULL, std::string(seckey.mb_str()));
 
             if (success)
                 wxMessageBox(_("Successfully decrypted data."), _("Success!"));

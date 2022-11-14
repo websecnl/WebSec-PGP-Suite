@@ -177,16 +177,10 @@ namespace suite
 						return;
 					}
 					
-					auto save_as_filename = std::string(io::file_select_prompt(this, "All files|*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT).mb_str());
-
-					if (save_as_filename.empty())
-					{
-						wxMessageBox(_("No file chosen."), _("Error"));
-						return;
-					}
+					auto save_as_filename = pgp::utils::utf8_encode(filename) + ".asc";
 
 					wxString keyid = choice->IsEmpty() ? _("") : io::wxget_value<wxChoice>(choice);
-					const auto res = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size(), pub_key, std::string(keyid.mbc_str()), save_as_filename + ".asc", password);
+					const auto res = pgp::encrypt_text((uint8_t*)filedata.data(), filedata.size(), pub_key, std::string(keyid.mbc_str()), save_as_filename, password);
 
 					if (res)
 						wxMessageBox(_("Success"));
