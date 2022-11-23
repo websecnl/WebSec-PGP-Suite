@@ -1,5 +1,7 @@
 #pragma once
 
+#include <wx/wxprec.h>
+
 #include <Windows.h>
 #include <string>
 #include <algorithm>
