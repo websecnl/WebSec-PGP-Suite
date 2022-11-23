@@ -133,20 +133,23 @@ wxPanel* MyFrame::create_decrypt_page(wxBookCtrlBase* parent)
         auto nameText = new wxStaticText(panel, wxID_ANY, _(str));
         nameSizer->Add(nameText);
 
-        wxButton* pickFile = nullptr;
+        wxButton* pick_file = nullptr;
 
         switch (str[0])
         {
         case 'F':
-            pickFile = new wxButton(panel, ID_OPEN_ENC_FILE, _("File..."));
+            pick_file = new wxButton(panel, ID_OPEN_ENC_FILE, _("File..."));
             break;
         case 'P':
-            pickFile = new wxButton(panel, ID_OPEN_SECKEY, _("File..."));
+            pick_file = new wxButton(panel, ID_OPEN_SECKEY, _("File..."));
             break;
         }
 
-        if (pickFile)
-            nameSizer->Add(pickFile);
+        if (pick_file)
+        {
+            _buttons[str] = pick_file;
+            nameSizer->Add(pick_file);
+        }
 
         nameText->SetMinSize(wxSize(125, nameText->GetMinSize().y));
 
@@ -196,7 +199,26 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 
     Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "Private key", "PGP file (*.pgp)|*.pgp|All files|*"), ID_OPEN_SECKEY, ID_OPEN_SECKEY);
     
-    Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "File to decrypt", "ASC file (*.asc)|*.asc|All files|*"), ID_OPEN_ENC_FILE, ID_OPEN_ENC_FILE);
+    //Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "File to decrypt", "ASC file (*.asc)|*.asc|All files|*"), ID_OPEN_ENC_FILE, ID_OPEN_ENC_FILE);
+    Bind(wxEVT_BUTTON, [this, bind_button_filediag](wxCommandEvent&)
+        {
+            const auto key{ "File to decrypt" };
+
+            bind_button_filediag(key, "ASC file (*.asc)|*.asc|All files|*");
+            const auto filename = std::string(_input_fields[key]->GetValue().c_str());
+            auto file_info = rnp::PacketInfo(filename);
+
+            if (file_info.key_protected())
+            {
+                _buttons["Private key"]->Enable();
+                _input_fields["Private key"]->Enable();
+            }
+            else
+            {
+                _buttons["Private key"]->Disable();
+                _input_fields["Private key"]->Disable();
+            }
+        }, ID_OPEN_ENC_FILE, ID_OPEN_ENC_FILE);
     
     Bind(wxEVT_MENU, [](wxCommandEvent&) 
         {
