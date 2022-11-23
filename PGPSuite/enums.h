@@ -21,9 +21,11 @@ namespace suite
         ID_SHOW_GENERATE_SETTINGS,
         ID_CHECK_VERSION,
         ID_STARTUP_CHECKBOX_SETTING,
+        ID_KEYID_SELECTION,
 
         /* menu's */
         ID_REGISTER_EXTENSION,
+        ID_UNREGISTER_EXTENSION,
 
         /* unused */
         ID_SAVE_FILE,
