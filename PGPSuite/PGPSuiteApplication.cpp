@@ -18,7 +18,7 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
         mainInputSizer->Add(nameSizer, 1, flags, 15);
         panelMainSizer->Add(mainInputSizer, 1, flags, 15);
 
-        auto name = new wxTextCtrl(panel, wxID_ANY);
+        auto name = str[0] == 'K' ? nullptr : new wxTextCtrl(panel, wxID_ANY);
         auto nameText = new wxStaticText(panel, wxID_ANY, _(str));
         nameSizer->Add(nameText);
 
@@ -26,6 +26,22 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
 
         switch (str[0])
         {
+        case 'K':
+        {
+            auto choices = new wxChoice(panel, ID_KEYID_SELECTION);
+            nameSizer->Add(choices);
+
+            Bind(wxEVT_BUTTON, [this, choices](wxCommandEvent&) 
+                {
+                    auto fname = std::string(_input_fields["Recipient public key"]->GetValue().c_str());
+                    const auto success = pgp::utils::add_keys_to_choice(fname, choices);
+                    if (success)
+                        choices->SetSelection(0);
+                    else
+                        wxMessageBox(_("Failed loading: \"") + fname + _("\""), _("Failed"));
+                }, ID_OPEN_PUBKEY, ID_OPEN_PUBKEY);
+            break;
+        }
         case 'F':
         {
             pickFile = new wxButton(panel, ID_OPEN_FILE, _("File..."));
@@ -70,7 +86,8 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
 
         nameText->SetMinSize(wxSize(125, nameText->GetMinSize().y));
 
-        nameSizer->Add(name, 1);
+        if (name)
+            nameSizer->Add(name, 1);
 
         if (flags & wxTOP)
             flags ^= wxTOP; // remove top border after first iteration
@@ -195,11 +212,14 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
 
     Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "File to encrypt"), ID_OPEN_FILE, ID_OPEN_FILE);
 
-    Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "Recipient public key", "PGP file (*.pgp)|*.pgp| All files|*"), ID_OPEN_PUBKEY, ID_OPEN_PUBKEY);
+    Bind(wxEVT_BUTTON, [bind_button_filediag](wxCommandEvent& e)
+        {
+            bind_button_filediag("Recipient public key", "PGP file (*.pgp)|*.pgp| All files|*");
+            e.Skip(); /* allow processing of the other event that uses this same id */
+        }, ID_OPEN_PUBKEY, ID_OPEN_PUBKEY);
 
     Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "Private key", "PGP file (*.pgp)|*.pgp|All files|*"), ID_OPEN_SECKEY, ID_OPEN_SECKEY);
     
-    //Bind(wxEVT_BUTTON, std::bind(bind_button_filediag, "File to decrypt", "ASC file (*.asc)|*.asc|All files|*"), ID_OPEN_ENC_FILE, ID_OPEN_ENC_FILE);
     Bind(wxEVT_BUTTON, [this, bind_button_filediag](wxCommandEvent&)
         {
             const auto key{ "File to decrypt" };
