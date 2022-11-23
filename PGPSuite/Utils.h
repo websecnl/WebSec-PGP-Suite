@@ -90,5 +90,40 @@ namespace pgp::utils
 
         std::copy(source.begin(), end, dest);
     }
+
+    /* @brief Adds all found userid's to the given wxChoice object
+    @param pubkey_fname: The key to derive userid's from
+    @param choices: wxChoice object to add userid's to */
+    inline bool add_keys_to_choice(std::string pubkey_fname, wxChoice* choices)
+    {
+        rnp::FFI ffi("GPG", "GPG");
+        rnp::Input key_input{};
+        rnp_key_handle_t key{};
+        rnp_identifier_iterator_t it{};
+        wxArrayString keyids{};
+        char* keyid{ nullptr };
+
+        key_input.set_input_from_path(std::move(pubkey_fname));
+        if (auto res = rnp_load_keys(ffi, "GPG", key_input, RNP_LOAD_SAVE_PUBLIC_KEYS) != RNP_SUCCESS) return false;
+
+        rnp_identifier_iterator_create(ffi, &it, "userid");
+        while (true)
+        {
+            auto res = rnp_identifier_iterator_next(it, (const char**)&keyid);
+
+            if (res != RNP_SUCCESS) return false;
+            if (keyid == NULL) break;
+
+            keyids.Add(_(keyid));
+        }
+
+        choices->Set(keyids);
+
+        rnp_key_handle_destroy(key);
+        rnp_buffer_destroy(keyid);
+        rnp_identifier_iterator_destroy(it);
+
+        return true;
+    }
 }
 
