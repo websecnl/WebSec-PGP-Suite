@@ -11,7 +11,7 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
 
     /* set names */
     for (auto flags = wxEXPAND | wxALL ^ wxBOTTOM;
-        auto str : { "File to encrypt", "KeyID of recipient", "Recipient public key", "Password(optional)" })
+        auto str : { "File to encrypt", "Recipient public key", "KeyID of recipient", "Password(optional)" })
     {
         auto mainInputSizer = new wxBoxSizer(wxVERTICAL);
         auto nameSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -30,15 +30,24 @@ wxPanel* MyFrame::create_encryption_page(wxBookCtrlBase* parent)
         {
             auto choices = new wxChoice(panel, ID_KEYID_SELECTION);
             nameSizer->Add(choices);
+            _choices[str] = choices;
+            choices->Disable();
 
             Bind(wxEVT_BUTTON, [this, choices](wxCommandEvent&) 
                 {
                     auto fname = std::string(_input_fields["Recipient public key"]->GetValue().c_str());
                     const auto success = pgp::utils::add_keys_to_choice(fname, choices);
+                    
                     if (success)
+                    {
+                        choices->Enable();
                         choices->SetSelection(0);
+                    }
                     else
+                    {
+                        choices->Disable();
                         wxMessageBox(_("Failed loading: \"") + fname + _("\""), _("Failed"));
+                    }
                 }, ID_OPEN_PUBKEY, ID_OPEN_PUBKEY);
             break;
         }
@@ -331,7 +340,7 @@ void MyFrame::runtime_bind_events(wxBookCtrlBase* notebook)
         {
             auto pubkey = _input_fields["Recipient public key"]->GetValue();
             auto data = _input_fields["File to encrypt"]->GetValue();
-            auto keyID = _input_fields["KeyID of recipient"]->GetValue();
+            auto keyID = _choices["KeyID of recipient"]->GetStringSelection();
             auto password = _input_fields["Password(optional)"]->GetValue();
             auto save_to = std::string{};
 
