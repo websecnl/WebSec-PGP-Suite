@@ -70,8 +70,10 @@ R"({
         /* query using the id label text associated with the name field */
         using TextFieldMap = std::unordered_map<const char*, wxTextCtrl*>;
         using ButtonMap = std::unordered_map<const char*, wxButton*>;
+        using ChoicesMap = std::unordered_map<const char*, wxChoice*>;
         
         ButtonMap _buttons;
+        ChoicesMap _choices;
         TextFieldMap _input_fields;
         EncMode _enc_mode{ EncMode::File };
         std::string _json_data = json_data;
@@ -106,7 +108,7 @@ R"({
             notebook->AddPage(decryptPanel, _("Decrypt"));
             notebook->Layout();
 
-            notebook->SetSelection(2);
+            notebook->SetSelection(0);
 
             mainSizer->Add(notebook, 1, wxEXPAND);
 
