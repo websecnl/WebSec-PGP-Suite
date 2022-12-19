@@ -12,6 +12,8 @@ Version: v1.0.0
 
 Build: stable
 
+SHA256: 2FC798EB83476DD95CC4E6AF7AE7F9106F3AF0A1AB53863F752CD53B0220E690
+
 # Dependencies
  - rnpgp -> https://github.com/rnpgp/rnp 
    - PGP Encryption
