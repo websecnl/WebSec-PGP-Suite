@@ -5,9 +5,14 @@ A simple and easy-to-use PGP tool for Windows which includes everything you need
 ![alt text](https://i.gyazo.com/231e63fa6183ba3dca84575cda8d14fe.png)
 
 Publisher: WebSec B.V.
+
 Developer: Koen Blok
+
 Version: v1.0.0
+
 Build: stable
+
+Release Download: https://websec.nl/downloads
 
 # Dependencies
  - rnpgp -> https://github.com/rnpgp/rnp 
