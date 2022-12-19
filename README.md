@@ -12,8 +12,6 @@ Version: v1.0.0
 
 Build: stable
 
-Release Download: https://websec.nl/downloads
-
 # Dependencies
  - rnpgp -> https://github.com/rnpgp/rnp 
    - PGP Encryption
