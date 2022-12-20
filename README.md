@@ -32,4 +32,4 @@ SHA256: 2FC798EB83476DD95CC4E6AF7AE7F9106F3AF0A1AB53863F752CD53B0220E690
  - mINI -> https://github.com/pulzed/mINI
    - Reading ini file for persistent settings
  
- License.txt is coming...
+
